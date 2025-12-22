@@ -3,11 +3,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* Force dark mode base */
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f1214;
-  /* Match AdminPanel.css bg */
+  color-scheme: light;
+  color: #213547;
+  background-color: #ffffff;
 }
 
 body {

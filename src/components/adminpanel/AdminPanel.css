@@ -1,0 +1,189 @@
+/* AdminPanel.css */
+:root {
+  --sidebar-bg-start: #0f2e5e; /* Deep blue start */
+  --sidebar-bg-end: #071a3d;   /* Deep blue end */
+  --sidebar-width: 260px;
+  --app-bg: #f4f7fa;           /* Light gray background */
+  --card-bg: #ffffff;
+  --text-primary: #333333;
+  --text-secondary: #6c757d;
+  --accent-orange: #ff7f50;    /* Orange accent for active state */
+  --accent-orange-grad: linear-gradient(90deg, #ff8a5c, #ff5e3a);
+  --border-color: #e9ecef;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: var(--sidebar-width);
+  background: linear-gradient(180deg, var(--sidebar-bg-start) 0%, var(--sidebar-bg-end) 100%);
+  color: white;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: 2rem;
+  border-top-right-radius: 30px; 
+  border-bottom-right-radius: 30px;
+  /* The image shows a curved sidebar edge, achieving this might be complex with just border-radius if it overlaps content.
+     For now, a simple border-radius or just rectangular is fine, but I'll try to add a subtle curve. */
+     margin-right: -20px; /* Slight overlap or adjustment if needed */
+     z-index: 10;
+     position: relative;
+}
+
+.sidebar-header {
+  padding: 0 1.5rem 2rem;
+}
+
+.sidebar-nav {
+  padding: 0 1rem;
+}
+
+.sidebar .nav-item {
+  margin-bottom: 0.5rem;
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 1.5rem;
+  border-radius: 12px; /* Rounded pill shape for active item */
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.sidebar .nav-link:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+  color: white;
+  background: var(--accent-orange-grad);
+  box-shadow: 0 4px 15px rgba(255, 127, 80, 0.4);
+}
+
+.sidebar .nav-link i {
+  font-size: 1.2rem;
+}
+
+/* Main Content Styles */
+.main-content {
+  flex-grow: 1;
+  padding: 2rem;
+  margin-left: 0; /* Since sidebar is flex container */
+  background-color: var(--app-bg);
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+  /* Font style matching "Student-forms" */
+  font-family: serif; /* The image has a serif-like font for the header "Student-forms" */
+}
+
+/* General Card Styles */
+.custom-card {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+}
+
+/* Table Styles - Light Theme */
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.custom-table thead th {
+  background-color: #e9ecef; /* Light gray header */
+  color: #495057;
+  font-weight: 600;
+  padding: 1rem;
+  border-bottom: 2px solid #dee2e6;
+  text-align: left;
+}
+
+.custom-table tbody td {
+  padding: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+  color: #212529;
+}
+
+.custom-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Action Buttons */
+.action-btn {
+  border: none;
+  background: none;
+  padding: 0.4rem;
+  margin: 0 0.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: inline-flex;  /* Ensure icons are centered */
+  align-items: center;
+  justify-content: center;
+  width: 32px; /* Fixed size for square look */
+  height: 32px;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.btn-view {
+  background-color: #0f2e5e; /* Dark Blue */
+  color: white;
+}
+
+.btn-edit {
+  background-color: #fd7e14; /* Orange */
+  color: white;
+}
+
+.btn-delete {
+  background-color: #dc3545; /* Red */
+  color: white;
+}
+
+.avatar-initials {
+  width: 40px;
+  height: 40px;
+  background-color: #e9ecef;
+  color: #495057;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 1rem;
+}
