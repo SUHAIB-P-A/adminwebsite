@@ -1,27 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './adminpanel/AdminPanel.css'; // Ensure we have access to styles
 
 const Students = () => {
     // Mock Data
-    const initialStudents = [
-        { id: 1, name: 'John Doe', course: 'BBA', college: 'ABC College', email: 'john@example.com', phone: '123-456-7890', address: '123 Main St' },
-        { id: 2, name: 'Alice', course: 'MBA', college: 'XYZ College', email: 'alice@example.com', phone: '987-654-3210', address: '456 Lane Ave' },
-        { id: 3, name: 'Richie', course: 'Computer Science', college: 'WZY Collg', email: 'richie@example.com', phone: '555-000-1111', address: '789 Street Dr' },
-    ];
-
-    const [students, setStudents] = useState(initialStudents);
+    const [students, setStudents] = useState([]);
     const [selectedStudent, setSelectedStudent] = useState(null); // For View Modal
     const [showModal, setShowModal] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        fetchStudents();
+    }, []);
+
+    const fetchStudents = async () => {
+        try {
+            const response = await axios.get('/api/submit/');
+            setStudents(response.data);
+            setLoading(false);
+        } catch (err) {
+            console.error("Error fetching students:", err);
+            setError("Failed to load students.");
+            setLoading(false);
+        }
+    };
 
     // Add Student State
     const [showAddModal, setShowAddModal] = useState(false);
     const [newStudent, setNewStudent] = useState({
-        name: '',
-        course: '',
-        college: '',
+        first_name: '',
+        last_name: '',
         email: '',
-        phone: '',
-        address: ''
+        phone_number: '',
+        plus_two_percentage: '',
+        city: '',
+        course_selected: '',
+        colleges_selected: ''
     });
 
     const handleView = (student) => {
@@ -46,7 +61,16 @@ const Students = () => {
 
     // Add Student Handlers
     const handleAddClick = () => {
-        setNewStudent({ name: '', course: '', college: '', email: '', phone: '', address: '' });
+        setNewStudent({
+            first_name: '',
+            last_name: '',
+            email: '',
+            phone_number: '',
+            plus_two_percentage: '',
+            city: '',
+            course_selected: '',
+            colleges_selected: ''
+        });
         setShowAddModal(true);
     };
 
@@ -59,21 +83,26 @@ const Students = () => {
         setNewStudent(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleAddSubmit = (e) => {
+    const handleAddSubmit = async (e) => {
         e.preventDefault();
-        // Simple Validation
-        if (!newStudent.name || !newStudent.course || !newStudent.college) {
-            alert('Please fill in required fields (Name, Course, College)');
-            return;
+        try {
+            await axios.post('/api/submit/', newStudent);
+            alert("Student added successfully!");
+            setShowAddModal(false);
+            fetchStudents(); // Refresh the list
+        } catch (error) {
+            console.error("Error adding student:", error);
+            let errMsg = "Failed to add student.";
+            if (error.response?.data) {
+                if (typeof error.response.data === 'object') {
+                    const firstError = Object.values(error.response.data).flat()[0];
+                    if (firstError) errMsg = firstError;
+                } else {
+                    errMsg = error.response.data;
+                }
+            }
+            alert(errMsg);
         }
-
-        const studentToAdd = {
-            id: students.length + 1, // Simple ID generation
-            ...newStudent
-        };
-
-        setStudents([...students, studentToAdd]);
-        setShowAddModal(false);
     };
 
     return (
@@ -91,23 +120,25 @@ const Students = () => {
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Course Selected</th>
-                                <th>College Selected</th>
+                                <th>Email</th>
+                                <th>Phone</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {students.map((student) => (
+                            {loading ? (
+                                <tr><td colSpan="4" className="text-center p-4">Loading...</td></tr>
+                            ) : error ? (
+                                <tr><td colSpan="4" className="text-center p-4 text-danger">{error}</td></tr>
+                            ) : students.map((student) => (
                                 <tr key={student.id}>
                                     <td>
                                         <div className="d-flex align-items-center">
-                                            {/* Initials Avatar if needed, or just name */}
-                                            {/* <div className="avatar-initials mr-2">{student.name.charAt(0)}</div> */}
-                                            <span className="fw-medium">{student.name}</span>
+                                            <span className="fw-medium">{student.first_name} {student.last_name}</span>
                                         </div>
                                     </td>
-                                    <td>{student.course}</td>
-                                    <td>{student.college}</td>
+                                    <td>{student.email}</td>
+                                    <td>{student.phone_number}</td>
                                     <td>
                                         <div className="d-flex gap-1">
                                             <button
@@ -149,48 +180,57 @@ const Students = () => {
 
             {/* View Details Modal (Bootstrap Modal) */}
             {showModal && selectedStudent && (
-                <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
-                            <div className="modal-header border-bottom-0">
-                                <h5 className="modal-title fw-bold">Student Details</h5>
-                                <button type="button" className="btn-close" onClick={closeModal}></button>
-                            </div>
-                            <div className="modal-body">
-                                <div className="text-center mb-4">
-                                    <div className="avatar-initials mx-auto mb-3" style={{ width: '80px', height: '80px', fontSize: '2rem', backgroundColor: '#0f2e5e', color: 'white' }}>
-                                        {selectedStudent.name.charAt(0)}
+                (() => {
+                    const studentName = `${selectedStudent.first_name} ${selectedStudent.last_name}`;
+                    return (
+                        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                            <div className="modal-dialog modal-dialog-centered">
+                                <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                                    <div className="modal-header border-bottom-0">
+                                        <h5 className="modal-title fw-bold">Student Details</h5>
+                                        <button type="button" className="btn-close" onClick={closeModal}></button>
                                     </div>
-                                    <h4 className="fw-bold">{selectedStudent.name}</h4>
-                                    <p className="text-muted">{selectedStudent.course}</p>
-                                </div>
-                                <div className="card bg-light border-0 p-3">
-                                    <div className="row g-3">
-                                        <div className="col-12">
-                                            <label className="text-secondary small">College</label>
-                                            <div className="fw-medium">{selectedStudent.college}</div>
+                                    <div className="modal-body">
+                                        <div className="text-center mb-4">
+                                            <div className="avatar-initials mx-auto mb-3" style={{ width: '80px', height: '80px', fontSize: '2rem', backgroundColor: '#0f2e5e', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                                                {studentName.charAt(0)}
+                                            </div>
+                                            <h4 className="fw-bold">{studentName}</h4>
+                                            <p className="text-muted">{selectedStudent.email}</p>
                                         </div>
-                                        <div className="col-6">
-                                            <label className="text-secondary small">Email</label>
-                                            <div className="fw-medium">{selectedStudent.email}</div>
-                                        </div>
-                                        <div className="col-6">
-                                            <label className="text-secondary small">Phone</label>
-                                            <div className="fw-medium">{selectedStudent.phone}</div>
-                                        </div>
-                                        <div className="col-12">
-                                            <label className="text-secondary small">Address</label>
-                                            <div className="fw-medium">{selectedStudent.address}</div>
+                                        <div className="card bg-light border-0 p-3">
+                                            <div className="row g-3">
+                                                <div className="col-6">
+                                                    <label className="text-secondary small">Phone Number</label>
+                                                    <div className="fw-medium">{selectedStudent.phone_number}</div>
+                                                </div>
+                                                <div className="col-6">
+                                                    <label className="text-secondary small">+2 Percentage</label>
+                                                    <div className="fw-medium">{selectedStudent.plus_two_percentage}%</div>
+                                                </div>
+                                                <div className="col-6">
+                                                    <label className="text-secondary small">City</label>
+                                                    <div className="fw-medium">{selectedStudent.city || 'N/A'}</div>
+                                                </div>
+                                                <div className="col-6">
+                                                    <label className="text-secondary small">Course Selected</label>
+                                                    <div className="fw-medium">{selectedStudent.course_selected || 'N/A'}</div>
+                                                </div>
+                                                <div className="col-12">
+                                                    <label className="text-secondary small">Colleges Selected</label>
+                                                    <div className="fw-medium">{selectedStudent.colleges_selected || 'No College Preference'}</div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="modal-footer border-top-0 justify-content-center">
+                                        <button type="button" className="btn btn-secondary px-4 rounded-pill" onClick={closeModal}>Close</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="modal-footer border-top-0 justify-content-center">
-                                <button type="button" className="btn btn-secondary px-4 rounded-pill" onClick={closeModal}>Close</button>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    );
+                })()
             )}
 
             {/* Add Student Modal */}
@@ -204,77 +244,104 @@ const Students = () => {
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleAddSubmit}>
-                                    <div className="mb-3">
-                                        <label className="form-label small fw-bold">Name <span className="text-danger">*</span></label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            name="name"
-                                            value={newStudent.name}
-                                            onChange={handleInputChange}
-                                            required
-                                            placeholder="Enter student name"
-                                        />
-                                    </div>
                                     <div className="row mb-3">
                                         <div className="col-6">
-                                            <label className="form-label small fw-bold">Course <span className="text-danger">*</span></label>
+                                            <label className="form-label small fw-bold">First Name <span className="text-danger">*</span></label>
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                name="course"
-                                                value={newStudent.course}
+                                                name="first_name"
+                                                value={newStudent.first_name}
                                                 onChange={handleInputChange}
                                                 required
-                                                placeholder="e.g. MBA"
+                                                placeholder="First name"
                                             />
                                         </div>
                                         <div className="col-6">
-                                            <label className="form-label small fw-bold">College <span className="text-danger">*</span></label>
+                                            <label className="form-label small fw-bold">Last Name <span className="text-danger">*</span></label>
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                name="college"
-                                                value={newStudent.college}
+                                                name="last_name"
+                                                value={newStudent.last_name}
                                                 onChange={handleInputChange}
                                                 required
-                                                placeholder="e.g. XYZ College"
+                                                placeholder="Last name"
                                             />
                                         </div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-6">
-                                            <label className="form-label small fw-bold">Email</label>
+                                            <label className="form-label small fw-bold">Email <span className="text-danger">*</span></label>
                                             <input
                                                 type="email"
                                                 className="form-control"
                                                 name="email"
                                                 value={newStudent.email}
                                                 onChange={handleInputChange}
+                                                required
                                                 placeholder="name@example.com"
                                             />
                                         </div>
                                         <div className="col-6">
-                                            <label className="form-label small fw-bold">Phone</label>
+                                            <label className="form-label small fw-bold">Phone <span className="text-danger">*</span></label>
                                             <input
                                                 type="text"
                                                 className="form-control"
-                                                name="phone"
-                                                value={newStudent.phone}
+                                                name="phone_number"
+                                                value={newStudent.phone_number}
                                                 onChange={handleInputChange}
-                                                placeholder="123-456-7890"
+                                                required
+                                                placeholder="10-digit number"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-6">
+                                            <label className="form-label small fw-bold">+2 Percentage <span className="text-danger">*</span></label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                className="form-control"
+                                                name="plus_two_percentage"
+                                                value={newStudent.plus_two_percentage}
+                                                onChange={handleInputChange}
+                                                required
+                                                placeholder="e.g. 85.50"
+                                            />
+                                        </div>
+                                        <div className="col-6">
+                                            <label className="form-label small fw-bold">City (Optional)</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="city"
+                                                value={newStudent.city}
+                                                onChange={handleInputChange}
+                                                placeholder="City"
                                             />
                                         </div>
                                     </div>
                                     <div className="mb-3">
-                                        <label className="form-label small fw-bold">Address</label>
+                                        <label className="form-label small fw-bold">Course Selected</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            name="course_selected"
+                                            value={newStudent.course_selected}
+                                            onChange={handleInputChange}
+                                            placeholder="e.g. BBA, MBA"
+                                        />
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label small fw-bold">Colleges Selected</label>
                                         <textarea
                                             className="form-control"
-                                            name="address"
-                                            value={newStudent.address}
+                                            name="colleges_selected"
+                                            value={newStudent.colleges_selected}
                                             onChange={handleInputChange}
                                             rows="2"
-                                            placeholder="Enter address"
+                                            placeholder="Enter selected colleges"
                                         ></textarea>
                                     </div>
                                     <div className="d-grid gap-2">
