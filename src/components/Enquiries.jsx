@@ -96,7 +96,7 @@ const Enquiries = () => {
                                                 <i className="bi bi-eye"></i>
                                             </button>
                                             <button
-                                                className="action-btn btn-delete text-danger"
+                                                className="action-btn btn-delete"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDelete(enquiry.id);
