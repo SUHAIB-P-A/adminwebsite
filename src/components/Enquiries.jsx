@@ -1,50 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './adminpanel/AdminPanel.css'; // Reusing existing styles for consistency
 
 const Enquiries = () => {
-    // Mock Data for Enquiries
-    const initialEnquiries = [
-        {
-            id: 1,
-            name: 'Michael Scott',
-            email: 'michael.scott@dunder-mifflin.com',
-            phone: '+1 555-0199',
-            qualification: 'MBA',
-            place: 'Scranton, PA',
-            message: 'I am interested in the management course. Can you provide more details about the curriculum?'
-        },
-        {
-            id: 2,
-            name: 'Pam Beesly',
-            email: 'pam.beesly@dunder-mifflin.com',
-            phone: '+1 555-0200',
-            qualification: 'Fine Arts',
-            place: 'New York, NY',
-            message: 'Do you offer any graphic design courses? I want to pursue my passion.'
-        },
-        {
-            id: 3,
-            name: 'Jim Halpert',
-            email: 'jim.halpert@dunder-mifflin.com',
-            phone: '+1 555-0201',
-            qualification: 'BBA',
-            place: 'Philadelphia, PA',
-            message: 'Looking for sports marketing programs. Please let me know if available.'
-        },
-        {
-            id: 4,
-            name: 'Dwight Schrute',
-            email: 'dwight.schrute@dunder-mifflin.com',
-            phone: '+1 555-0202',
-            qualification: 'Farming',
-            place: 'Farms, PA',
-            message: 'I require information on advanced beet agricultural studies. Promptly.'
-        },
-    ];
-
-    const [enquiries, setEnquiries] = useState(initialEnquiries);
+    const [enquiries, setEnquiries] = useState([]);
     const [selectedEnquiry, setSelectedEnquiry] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch Enquiries from API
+    useEffect(() => {
+        fetchEnquiries();
+    }, []);
+
+    const fetchEnquiries = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:8000/api/enquiries/');
+            setEnquiries(response.data);
+            setLoading(false);
+        } catch (error) {
+            console.error("Error fetching enquiries:", error);
+            setLoading(false);
+        }
+    };
 
     // Open Modal
     const handleView = (enquiry) => {
@@ -58,6 +36,19 @@ const Enquiries = () => {
         setSelectedEnquiry(null);
     };
 
+    // Handle Delete
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to delete this enquiry?")) {
+            try {
+                await axios.delete(`http://127.0.0.1:8000/api/enquiries/${id}/`);
+                fetchEnquiries(); // Refresh list
+            } catch (error) {
+                console.error("Error deleting enquiry:", error);
+                alert("Failed to delete enquiry.");
+            }
+        }
+    };
+
     return (
         <div className="p-4 page-anime">
             <h1 className="page-title">Enquiries</h1>
@@ -67,15 +58,15 @@ const Enquiries = () => {
                     <table className="custom-table table-hover">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Place</th>
-                                <th>Qualification</th>
+                                <th>Full Name</th>
                                 <th>Message Snippet</th>
                                 <th className="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {enquiries.map((enquiry) => (
+                            {loading ? (
+                                <tr><td colSpan="3" className="text-center p-4">Loading...</td></tr>
+                            ) : enquiries.map((enquiry) => (
                                 <tr
                                     key={enquiry.id}
                                     onClick={() => handleView(enquiry)}
@@ -90,27 +81,36 @@ const Enquiries = () => {
                                             <span className="fw-medium text-dark">{enquiry.name}</span>
                                         </div>
                                     </td>
-                                    <td>{enquiry.place}</td>
-                                    <td>{enquiry.qualification}</td>
                                     <td className="text-muted text-truncate" style={{ maxWidth: '200px' }}>
                                         {enquiry.message}
                                     </td>
                                     <td className="text-end">
-                                        <button
-                                            className="action-btn btn-view"
-                                            onClick={(e) => {
-                                                e.stopPropagation(); // Prevent triggering row click twice
-                                                handleView(enquiry);
-                                            }}
-                                        >
-                                            <i className="bi bi-eye"></i>
-                                        </button>
+                                        <div className="d-flex justify-content-end gap-2">
+                                            <button
+                                                className="action-btn btn-view"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleView(enquiry);
+                                                }}
+                                            >
+                                                <i className="bi bi-eye"></i>
+                                            </button>
+                                            <button
+                                                className="action-btn btn-delete text-danger"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(enquiry.id);
+                                                }}
+                                            >
+                                                <i className="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
-                            {enquiries.length === 0 && (
+                            {!loading && enquiries.length === 0 && (
                                 <tr>
-                                    <td colSpan="5" className="text-center p-4 text-muted">
+                                    <td colSpan="3" className="text-center p-4 text-muted">
                                         No enquiries found.
                                     </td>
                                 </tr>
@@ -135,27 +135,23 @@ const Enquiries = () => {
                                         {selectedEnquiry.name.charAt(0)}
                                     </div>
                                     <h4 className="fw-bold">{selectedEnquiry.name}</h4>
-                                    <p className="text-muted">{selectedEnquiry.qualification}</p>
+                                    <p className="text-muted">{selectedEnquiry.location || 'Location not provided'}</p>
                                 </div>
                                 <div className="card bg-light border-0 p-3">
                                     <div className="row g-3">
                                         <div className="col-12">
-                                            <label className="text-secondary small fw-bold">Subject/Message</label>
+                                            <label className="text-secondary small fw-bold">Message</label>
                                             <div className="p-2 bg-white rounded border border-light">
-                                                {selectedEnquiry.message}
+                                                {selectedEnquiry.message || 'No message provided'}
                                             </div>
                                         </div>
                                         <div className="col-6">
                                             <label className="text-secondary small fw-bold">Email</label>
-                                            <div className="fw-medium">{selectedEnquiry.email}</div>
+                                            <div className="fw-medium">{selectedEnquiry.email || 'N/A'}</div>
                                         </div>
                                         <div className="col-6">
-                                            <label className="text-secondary small fw-bold">Phone</label>
+                                            <label className="text-secondary small fw-bold">Mobile</label>
                                             <div className="fw-medium">{selectedEnquiry.phone}</div>
-                                        </div>
-                                        <div className="col-12">
-                                            <label className="text-secondary small fw-bold">Place</label>
-                                            <div className="fw-medium">{selectedEnquiry.place}</div>
                                         </div>
                                     </div>
                                 </div>

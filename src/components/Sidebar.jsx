@@ -1,12 +1,13 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import './adminpanel/AdminPanel.css'; // Reusing AdminPanel css for now, or could share styles
 
-const Sidebar = ({ activeTab, setActiveTab }) => {
+const Sidebar = () => {
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2' },
-        { id: 'students', label: 'Students', icon: 'bi-people' },
-        { id: 'enquiries', label: 'Enquiries', icon: 'bi-file-text' },
-        { id: 'settings', label: 'Settings', icon: 'bi-gear' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2', path: '/dashboard' },
+        { id: 'students', label: 'Students', icon: 'bi-people', path: '/students' },
+        { id: 'enquiries', label: 'Enquiries', icon: 'bi-file-text', path: '/enquiries' },
+        { id: 'settings', label: 'Settings', icon: 'bi-gear', path: '/settings' },
     ];
 
     return (
@@ -20,13 +21,13 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             <ul className="nav flex-column sidebar-nav">
                 {menuItems.map((item) => (
                     <li className="nav-item" key={item.id}>
-                        <button
-                            className={`nav-link ${activeTab === item.id ? 'active' : ''}`}
-                            onClick={() => setActiveTab(item.id)}
+                        <NavLink
+                            to={item.path}
+                            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
                         >
                             <i className={`bi ${item.icon} me-2`}></i>
                             {item.label}
-                        </button>
+                        </NavLink>
                     </li>
                 ))}
             </ul>
