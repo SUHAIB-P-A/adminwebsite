@@ -15,7 +15,11 @@ const Enquiries = () => {
 
     const fetchEnquiries = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/enquiries/');
+            const staffId = localStorage.getItem('staff_id');
+            const role = localStorage.getItem('role');
+            const headers = (role !== 'admin' && role !== 'Admin' && staffId) ? { 'X-Staff-ID': staffId } : {};
+
+            const response = await axios.get('http://127.0.0.1:8000/api/enquiries/', { headers });
             setEnquiries(response.data);
             setLoading(false);
         } catch (error) {
@@ -40,8 +44,12 @@ const Enquiries = () => {
     const handleDelete = async (id) => {
         if (window.confirm("Are you sure you want to delete this enquiry?")) {
             try {
-                await axios.delete(`http://127.0.0.1:8000/api/enquiries/${id}/`);
-                fetchEnquiries(); // Refresh list
+                const staffId = localStorage.getItem('staff_id');
+                const role = localStorage.getItem('role');
+                const headers = (role !== 'admin' && role !== 'Admin' && staffId) ? { 'X-Staff-ID': staffId } : {};
+
+                await axios.delete(`http://127.0.0.1:8000/api/enquiries/${id}/`, { headers });
+                fetchEnquiries();
             } catch (error) {
                 console.error("Error deleting enquiry:", error);
                 alert("Failed to delete enquiry.");

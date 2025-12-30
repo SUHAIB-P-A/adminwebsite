@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './adminpanel/AdminPanel.css';
 
-const EXCLUDED_FIELDS = ['id', 'first_name', 'last_name', 'email', 'phone_number', 'gender', 'dob', 'highest_qualification', 'year_of_passing', 'aggregate_percentage', 'plus_two_percentage', 'city', 'course_selected', 'colleges_selected', 'created_at'];
+
 
 const FIELD_CONFIG = [
     { name: 'first_name', label: 'First Name', required: true, half: true },
@@ -25,14 +25,28 @@ const Students = () => {
     const [modal, setModal] = useState({ type: null, data: null }); // types: 'view', 'add', 'edit', 'delete'
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
-    const [customField, setCustomField] = useState({ name: '', val: '' });
+
     const longPressTimer = useRef(null);
+
+    const [staffList, setStaffList] = useState([]);
 
     const fetchStudents = async () => {
         try {
-            const { data } = await axios.get('/api/submit/');
+            const staffId = localStorage.getItem('staff_id');
+            const role = localStorage.getItem('role');
+
+            // Only send header if staff. Admin sees all (backend ignores or we send null)
+            const headers = (role !== 'admin' && role !== 'Admin') ? { 'X-Staff-ID': staffId } : {};
+
+            const { data } = await axios.get('/api/submit/', { headers });
             setStudents(data);
-        } catch (err) { showToast("Failed to load students", "danger"); }
+
+            // If Admin, also fetch staff list for dropdown
+            if (role === 'admin' || role === 'Admin') {
+                const staffResp = await axios.get('/api/staff/');
+                setStaffList(staffResp.data);
+            }
+        } catch (err) { showToast("Failed to load data", "danger"); }
         setLoading(false);
     };
 
@@ -45,7 +59,15 @@ const Students = () => {
 
     const handleAction = async (method, url, payload = null, successMsg) => {
         try {
-            await axios[method](url, payload);
+            // Pass header for edit/delete if needed (though mostly for GET to filter list)
+            // But better to be consistent
+            const staffId = localStorage.getItem('staff_id');
+            const role = localStorage.getItem('role');
+            const headers = (role !== 'admin' && role !== 'Admin') ? { 'X-Staff-ID': staffId } : {};
+
+            if (payload) await axios[method](url, payload, { headers });
+            else await axios[method](url, { headers });
+
             setModal({ type: 'success', data: { message: successMsg } }); // Show success modal
             fetchStudents();
             if (selection.active) setSelection({ active: false, ids: [] });
@@ -95,20 +117,43 @@ const Students = () => {
                 <table className="table table-hover mb-0 align-middle">
                     <thead className="bg-light sticky-top">
                         <tr>
-                            {selection.active && <th className="px-2 text-center"><input type="checkbox" className="form-check-input" checked={selection.ids.length === students.length} onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? students.map(s => s.id) : [] }))} /></th>}
-                            <th>Name</th><th>Course</th><th>College</th><th>Action</th>
+                            {selection.active && <th className="px-2 text-center" style={{ width: '5%' }}><input type="checkbox" className="form-check-input" checked={selection.ids.length === students.length} onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? students.map(s => s.id) : [] }))} /></th>}
+                            <th style={{ width: '5%' }}>#ID</th>
+                            <th style={{ width: selection.active ? '19%' : '20%' }}>Name</th>
+                            <th style={{ width: '20%' }}>Course</th>
+                            <th style={{ width: '20%' }}>College</th>
+                            <th style={{ width: '15%' }}>Assigned Staff</th>
+                            <th style={{ width: '20%' }}>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? <tr><td colSpan="5" className="text-center p-4">Loading...</td></tr> : students.map(s => (
+                        {loading ? <tr><td colSpan="7" className="text-center p-4">Loading...</td></tr> : students.map((s, index) => (
                             <tr key={s.id}
                                 onMouseDown={() => handleLongPress(s.id)} onMouseUp={() => clearTimeout(longPressTimer.current)}
                                 onClick={() => selection.active && toggleId(s.id)}
                                 className={selection.ids.includes(s.id) ? "table-active" : ""}>
                                 {selection.active && <td className="text-center"><input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" /></td>}
+                                <td className="fw-bold text-secondary">{index + 1}</td>
                                 <td>{s.first_name} {s.last_name}</td>
                                 <td>{s.course_selected || 'N/A'}</td>
                                 <td>{s.colleges_selected || 'No Preference'}</td>
+                                <td>
+                                    {s.assigned_staff_name ? (
+                                        <span className="badge bg-light text-dark border">
+                                            <i className="bi bi-person-fill me-1 text-secondary"></i>
+                                            {(() => {
+                                                if (staffList.length > 0) {
+                                                    const idx = staffList.findIndex(st => st.id === s.assigned_staff);
+                                                    // Use the name from the fresh staffList to ensure consistency
+                                                    if (idx !== -1) return `${staffList[idx].name} (#STF${String(idx + 1).padStart(3, '0')})`;
+                                                }
+                                                return s.assigned_staff_name;
+                                            })()}
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted small"><em>Unassigned</em></span>
+                                    )}
+                                </td>
                                 <td>
                                     <div className="d-flex gap-1">
                                         <button className="action-btn btn-view" onClick={(e) => { e.stopPropagation(); setModal({ type: 'view', data: s }); }}><i className="bi bi-eye"></i></button>
@@ -125,13 +170,16 @@ const Students = () => {
             {selection.active && (
                 <div className="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-dark text-white p-3 rounded-pill shadow-lg d-flex gap-3" style={{ zIndex: 1050 }}>
                     <span className="fw-bold">{selection.ids.length} Selected</span>
-                    <button className="btn btn-danger btn-sm rounded-pill" onClick={() => setModal({ type: 'delete', data: { type: 'bulk' } })}>Delete</button>
+                    {/* Hide Bulk Delete for Staff to prevent accidents, or allow if they really want? Prompt says they can delete assigned. keeping safe. */}
+                    {(localStorage.getItem('role') === 'admin' || localStorage.getItem('role') === 'Admin') && (
+                        <button className="btn btn-danger btn-sm rounded-pill" onClick={() => setModal({ type: 'delete', data: { type: 'bulk' } })}>Delete</button>
+                    )}
                     <button className="btn btn-secondary btn-sm rounded-pill" onClick={() => setSelection({ active: false, ids: [] })}>Cancel</button>
                 </div>
             )}
 
             {/* View/Add/Edit Modal Combined Logic */}
-            {modal.type && modal.type !== 'delete' && (
+            {['view', 'add', 'edit'].includes(modal.type) && (
                 <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
@@ -150,7 +198,17 @@ const Students = () => {
                                         ))}
                                     </div>
                                 ) : (
-                                    <form onSubmit={(e) => { e.preventDefault(); modal.type === 'add' ? handleAction('post', '/api/submit/', modal.data, "Added!") : handleAction('put', `/api/submit/${modal.data.id}/`, modal.data, "Updated!"); }}>
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        let payload = { ...modal.data };
+                                        if (payload.assigned_staff === 'auto') {
+                                            payload.assigned_staff = null;
+                                            payload.auto_allocate = true;
+                                        }
+                                        modal.type === 'add'
+                                            ? handleAction('post', '/api/submit/', payload, "Added!")
+                                            : handleAction('put', `/api/submit/${modal.data.id}/`, payload, "Updated!");
+                                    }}>
                                         <div className="row g-3">
                                             {FIELD_CONFIG.map(f => (
                                                 <div className={f.half ? "col-6" : "col-12"} key={f.name}>
@@ -158,23 +216,28 @@ const Students = () => {
                                                     {renderInput(f, modal.data, (e) => setModal({ ...modal, data: { ...modal.data, [e.target.name]: e.target.value } }))}
                                                 </div>
                                             ))}
-                                        </div>
-                                        {modal.type === 'edit' && (
-                                            <div className="mt-3 border-top pt-2">
-                                                <div className="row g-2 mb-2">
-                                                    <div className="col-5"><input className="form-control form-control-sm" placeholder="Field" value={customField.name} onChange={e => setCustomField({ ...customField, name: e.target.value })} /></div>
-                                                    <div className="col-5"><input className="form-control form-control-sm" placeholder="Value" value={customField.val} onChange={e => setCustomField({ ...customField, val: e.target.value })} /></div>
-                                                    <div className="col-2"><button type="button" className="btn btn-sm btn-primary w-100" onClick={() => { if (customField.name && customField.val) { setModal({ ...modal, data: { ...modal.data, [customField.name]: customField.val } }); setCustomField({ name: '', val: '' }); } }}>Add</button></div>
+
+                                            {(localStorage.getItem('role') === 'admin' || localStorage.getItem('role') === 'Admin') && (
+                                                <div className="col-12">
+                                                    <label className="form-label small fw-bold">Assigned Staff</label>
+                                                    <select
+                                                        className="form-select"
+                                                        value={modal.data.assigned_staff || ''}
+                                                        onChange={(e) => setModal({ ...modal, data: { ...modal.data, assigned_staff: e.target.value } })}
+                                                    >
+                                                        <option value="auto">Auto Allocate (Auto-assign to least loaded)</option>
+                                                        <option value="">Unassigned</option>
+                                                        {staffList.map((s, index) => (
+                                                            <option key={s.id} value={s.id}>
+                                                                {s.name} (#STF{String(index + 1).padStart(3, '0')})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="form-text small">Selecting "Auto Allocate" will automatically assign this student to the staff member with the lowest workload.</div>
                                                 </div>
-                                                {Object.keys(modal.data).filter(k => !EXCLUDED_FIELDS.includes(k)).map(k => (
-                                                    <div className="input-group mb-1" key={k}>
-                                                        <span className="input-group-text sm text-capitalize">{k}</span>
-                                                        <input className="form-control form-control-sm" value={modal.data[k]} onChange={e => setModal({ ...modal, data: { ...modal.data, [k]: e.target.value } })} />
-                                                        <button className="btn btn-outline-danger btn-sm" onClick={() => { const d = { ...modal.data }; delete d[k]; setModal({ ...modal, data: d }); }}><i className="bi bi-trash"></i></button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
+
                                         <button className="btn btn-primary w-100 rounded-pill mt-4">{modal.type === 'add' ? 'Add' : 'Update'} Student</button>
                                     </form>
                                 )}
