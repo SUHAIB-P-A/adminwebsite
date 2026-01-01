@@ -25,6 +25,7 @@ const Students = () => {
     const [modal, setModal] = useState({ type: null, data: null }); // types: 'view', 'add', 'edit', 'delete'
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
+    const [errors, setErrors] = useState({});
 
     const longPressTimer = useRef(null);
 
@@ -35,10 +36,17 @@ const Students = () => {
             const staffId = localStorage.getItem('staff_id');
             const role = localStorage.getItem('role');
 
-            // Only send header if staff. Admin sees all (backend ignores or we send null)
-            const headers = (role !== 'admin' && role !== 'Admin') ? { 'X-Staff-ID': staffId } : {};
+            // Send staff_id as query param for robust filtering
+            const params = (role !== 'admin' && role !== 'Admin') ? { staff_id: staffId } : {};
 
-            const { data } = await axios.get('/api/submit/', { headers });
+            // Security Safeguard: If Staff but no ID, don't fetch
+            if ((role !== 'admin' && role !== 'Admin') && (!staffId || staffId === 'null' || staffId === 'undefined')) {
+                console.warn("Staff ID missing or invalid. Aborting fetch to prevent data leak.");
+                setLoading(false);
+                return;
+            }
+
+            const { data } = await axios.get('/api/submit/', { params });
             setStudents(data);
 
             // If Admin, also fetch staff list for dropdown
@@ -58,22 +66,33 @@ const Students = () => {
     };
 
     const handleAction = async (method, url, payload = null, successMsg) => {
+        setErrors({}); // Clear previous errors
         try {
-            // Pass header for edit/delete if needed (though mostly for GET to filter list)
-            // But better to be consistent
+            // Pass header for edit/delete if needed
             const staffId = localStorage.getItem('staff_id');
             const role = localStorage.getItem('role');
-            const headers = (role !== 'admin' && role !== 'Admin') ? { 'X-Staff-ID': staffId } : {};
+            // Use params for consistency
+            const params = (role !== 'admin' && role !== 'Admin') ? { staff_id: staffId } : {};
 
-            if (payload) await axios[method](url, payload, { headers });
-            else await axios[method](url, { headers });
+            if (payload) await axios[method](url, payload, { params });
+            else await axios[method](url, { params });
 
             setModal({ type: 'success', data: { message: successMsg } }); // Show success modal
             fetchStudents();
             if (selection.active) setSelection({ active: false, ids: [] });
         } catch (err) {
             const errorData = err.response?.data;
-            showToast(typeof errorData === 'object' ? Object.values(errorData).flat()[0] : "Operation failed", "danger");
+            if (errorData && typeof errorData === 'object') {
+                setErrors(errorData);
+                // Keep toast for generic errors or if no specific field errors
+                if (errorData.error || errorData.detail) {
+                    showToast(errorData.error || errorData.detail || "Operation failed", "danger");
+                } else {
+                    showToast("Please check the form for errors.", "danger");
+                }
+            } else {
+                showToast("Operation failed", "danger");
+            }
         }
     };
 
@@ -98,10 +117,28 @@ const Students = () => {
     };
 
     const renderInput = (f, val, handler) => {
-        const props = { name: f.name, value: val[f.name] || '', onChange: handler, required: f.required, className: "form-control", placeholder: f.label };
-        if (f.type === 'select') return <select {...props} className="form-select"><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
-        if (f.type === 'textarea') return <textarea {...props} rows="2" />;
-        return <input {...props} type={f.type || 'text'} />;
+        const errorMsg = errors[f.name];
+        const hasError = !!errorMsg;
+        const props = {
+            name: f.name,
+            value: val[f.name] || '',
+            onChange: handler,
+            required: f.required,
+            className: `form-control ${hasError ? 'is-invalid' : ''}`,
+            placeholder: f.label
+        };
+
+        let inputElem;
+        if (f.type === 'select') inputElem = <select {...props} className={`form-select ${hasError ? 'is-invalid' : ''}`}><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
+        else if (f.type === 'textarea') inputElem = <textarea {...props} rows="2" />;
+        else inputElem = <input {...props} type={f.type || 'text'} />;
+
+        return (
+            <>
+                {inputElem}
+                {hasError && <div className="invalid-feedback">{Array.isArray(errorMsg) ? errorMsg[0] : errorMsg}</div>}
+            </>
+        );
     };
 
     return (
@@ -121,8 +158,8 @@ const Students = () => {
                             <th style={{ width: '5%' }}>#ID</th>
                             <th style={{ width: selection.active ? '19%' : '20%' }}>Name</th>
                             <th style={{ width: '20%' }}>Course</th>
-                            <th style={{ width: '20%' }}>College</th>
-                            <th style={{ width: '15%' }}>Assigned Staff</th>
+                            <th style={{ width: '15%' }}>Status</th>
+                            <th style={{ width: '20%' }}>Assigned Staff</th>
                             <th style={{ width: '20%' }}>Action</th>
                         </tr>
                     </thead>
@@ -136,11 +173,19 @@ const Students = () => {
                                 <td className="fw-bold text-secondary">{index + 1}</td>
                                 <td>{s.first_name} {s.last_name}</td>
                                 <td>{s.course_selected || 'N/A'}</td>
-                                <td>{s.colleges_selected || 'No Preference'}</td>
+                                <td>
+                                    <span className={`badge rounded-pill ${s.status === 'Completed' ? 'bg-success' :
+                                        s.status === 'In Progress' ? 'bg-primary' :
+                                            s.status === 'Pending' ? 'bg-warning text-dark' :
+                                                'bg-secondary'
+                                        }`}>
+                                        {s.status || 'Pending'}
+                                    </span>
+                                </td>
                                 <td>
                                     {s.assigned_staff_name ? (
-                                        <span className="badge bg-light text-dark border">
-                                            <i className="bi bi-person-fill me-1 text-secondary"></i>
+                                        <span className="badge badge-assigned-staff border">
+                                            <i className="bi bi-person-fill me-1"></i>
                                             {(() => {
                                                 if (staffList.length > 0) {
                                                     const idx = staffList.findIndex(st => st.id === s.assigned_staff);
@@ -171,9 +216,7 @@ const Students = () => {
                 <div className="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-dark text-white p-3 rounded-pill shadow-lg d-flex gap-3" style={{ zIndex: 1050 }}>
                     <span className="fw-bold">{selection.ids.length} Selected</span>
                     {/* Hide Bulk Delete for Staff to prevent accidents, or allow if they really want? Prompt says they can delete assigned. keeping safe. */}
-                    {(localStorage.getItem('role') === 'admin' || localStorage.getItem('role') === 'Admin') && (
-                        <button className="btn btn-danger btn-sm rounded-pill" onClick={() => setModal({ type: 'delete', data: { type: 'bulk' } })}>Delete</button>
-                    )}
+                    <button className="btn btn-danger btn-sm rounded-pill" onClick={() => setModal({ type: 'delete', data: { type: 'bulk' } })}>Delete</button>
                     <button className="btn btn-secondary btn-sm rounded-pill" onClick={() => setSelection({ active: false, ids: [] })}>Cancel</button>
                 </div>
             )}
@@ -236,6 +279,19 @@ const Students = () => {
                                                     <div className="form-text small">Selecting "Auto Allocate" will automatically assign this student to the staff member with the lowest workload.</div>
                                                 </div>
                                             )}
+
+                                            <div className="col-12">
+                                                <label className="form-label small fw-bold">Status</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={modal.data.status || 'Pending'}
+                                                    onChange={(e) => setModal({ ...modal, data: { ...modal.data, status: e.target.value } })}
+                                                >
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="In Progress">In Progress</option>
+                                                    <option value="Completed">Completed</option>
+                                                </select>
+                                            </div>
                                         </div>
 
                                         <button className="btn btn-primary w-100 rounded-pill mt-4">{modal.type === 'add' ? 'Add' : 'Update'} Student</button>

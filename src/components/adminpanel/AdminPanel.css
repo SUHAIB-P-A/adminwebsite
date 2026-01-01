@@ -1,13 +1,17 @@
 /* AdminPanel.css */
 :root {
-  --sidebar-bg-start: #0f2e5e; /* Deep blue start */
-  --sidebar-bg-end: #071a3d;   /* Deep blue end */
+  --sidebar-bg-start: #0f2e5e;
+  /* Deep blue start */
+  --sidebar-bg-end: #071a3d;
+  /* Deep blue end */
   --sidebar-width: 260px;
-  --app-bg: #f4f7fa;           /* Light gray background */
+  --app-bg: #f4f7fa;
+  /* Light gray background */
   --card-bg: #ffffff;
   --text-primary: #333333;
   --text-secondary: #6c757d;
-  --accent-orange: #ff7f50;    /* Orange accent for active state */
+  --accent-orange: #ff7f50;
+  /* Orange accent for active state */
   --accent-orange-grad: linear-gradient(90deg, #ff8a5c, #ff5e3a);
   --border-color: #e9ecef;
 }
@@ -35,13 +39,14 @@ body {
   display: flex;
   flex-direction: column;
   padding-top: 2rem;
-  border-top-right-radius: 30px; 
+  border-top-right-radius: 30px;
   border-bottom-right-radius: 30px;
   /* The image shows a curved sidebar edge, achieving this might be complex with just border-radius if it overlaps content.
      For now, a simple border-radius or just rectangular is fine, but I'll try to add a subtle curve. */
-     margin-right: -20px; /* Slight overlap or adjustment if needed */
-     z-index: 10;
-     position: relative;
+  margin-right: -20px;
+  /* Slight overlap or adjustment if needed */
+  z-index: 10;
+  position: relative;
 }
 
 .sidebar-header {
@@ -61,7 +66,8 @@ body {
   display: flex;
   align-items: center;
   padding: 0.8rem 1.5rem;
-  border-radius: 12px; /* Rounded pill shape for active item */
+  border-radius: 12px;
+  /* Rounded pill shape for active item */
   transition: all 0.3s ease;
   font-weight: 500;
 }
@@ -85,7 +91,8 @@ body {
 .main-content {
   flex-grow: 1;
   padding: 2rem;
-  margin-left: 0; /* Since sidebar is flex container */
+  margin-left: 0;
+  /* Since sidebar is flex container */
   background-color: var(--app-bg);
 }
 
@@ -102,7 +109,8 @@ body {
   color: #1a1a1a;
   margin-bottom: 1.5rem;
   /* Font style matching "Student-forms" */
-  font-family: serif; /* The image has a serif-like font for the header "Student-forms" */
+  font-family: serif;
+  /* The image has a serif-like font for the header "Student-forms" */
 }
 
 /* General Card Styles */
@@ -121,7 +129,8 @@ body {
 }
 
 .custom-table thead th {
-  background-color: #e9ecef; /* Light gray header */
+  background-color: #e9ecef;
+  /* Light gray header */
   color: #495057;
   font-weight: 600;
   padding: 1rem;
@@ -149,10 +158,12 @@ body {
   border-radius: 4px;
   cursor: pointer;
   transition: transform 0.2s;
-  display: inline-flex;  /* Ensure icons are centered */
+  display: inline-flex;
+  /* Ensure icons are centered */
   align-items: center;
   justify-content: center;
-  width: 32px; /* Fixed size for square look */
+  width: 32px;
+  /* Fixed size for square look */
   height: 32px;
 }
 
@@ -161,17 +172,20 @@ body {
 }
 
 .btn-view {
-  background-color: #0f2e5e; /* Dark Blue */
+  background-color: #0f2e5e;
+  /* Dark Blue */
   color: white;
 }
 
 .btn-edit {
-  background-color: #fd7e14; /* Orange */
+  background-color: #fd7e14;
+  /* Orange */
   color: white;
 }
 
 .btn-delete {
-  background-color: #dc3545; /* Red */
+  background-color: #dc3545;
+  /* Red */
   color: white;
 }
 
@@ -186,4 +200,13 @@ body {
   justify-content: center;
   font-weight: bold;
   margin-right: 1rem;
+}
+
+.badge-assigned-staff {
+  background-color: #e0f2fe;
+  /* Light Blue */
+  color: #0c4a6e;
+  /* Dark Blue Text */
+  font-weight: 500;
+  padding: 0.5em 0.8em;
 }
