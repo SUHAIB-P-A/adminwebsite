@@ -10,6 +10,7 @@ const Enquiries = () => {
     const [staffList, setStaffList] = useState([]);
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
     const [selection, setSelection] = useState({ active: false, ids: [] });
+    const [isEditMode, setIsEditMode] = useState(false);
     const longPressTimer = useRef(null);
 
     // Fetch Enquiries and Staff (if Admin)
@@ -44,8 +45,7 @@ const Enquiries = () => {
             const role = localStorage.getItem('role');
             const params = (role !== 'admin' && role !== 'Admin' && staffId) ? { staff_id: staffId } : {};
 
-            // Security Safeguard: If Staff but no ID (or invalid string), don't fetch (prevents Admin fallback/leak)
-            // Checks for: null, undefined (vals), or "null", "undefined" (strings), or empty string
+            // Security Safeguard
             if ((role !== 'admin' && role !== 'Admin') && (!staffId || staffId === 'null' || staffId === 'undefined')) {
                 console.warn("Staff ID missing or invalid. Aborting fetch to prevent data leak.");
                 setLoading(false);
@@ -62,7 +62,7 @@ const Enquiries = () => {
         }
     };
 
-    // Handle Update Enquiry (Assign Staff)
+    // Handle Update Enquiry
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
@@ -76,8 +76,6 @@ const Enquiries = () => {
                 payload.auto_allocate = true;
             }
 
-            // Using partial update (PUT with partial=True in backend handling is ideal, or usually PATCH)
-            // But we implemented PUT with partial=True support in views.py
             await axios.put(`/api/enquiries/${selectedEnquiry.id}/`, payload, { params });
 
             showToast("Enquiry updated successfully!");
@@ -90,9 +88,10 @@ const Enquiries = () => {
     };
 
     // Open Modal
-    const handleView = (enquiry) => {
+    const handleView = (enquiry, editMode = false) => {
         if (selection.active) return; // Don't view if selecting
         setSelectedEnquiry(enquiry);
+        setIsEditMode(editMode);
         setShowModal(true);
     };
 
@@ -100,6 +99,7 @@ const Enquiries = () => {
     const closeModal = () => {
         setShowModal(false);
         setSelectedEnquiry(null);
+        setIsEditMode(false);
     };
 
     // Handle Delete
@@ -162,6 +162,7 @@ const Enquiries = () => {
                                 )}
                                 <th>Full Name</th>
                                 <th>Message Snippet</th>
+                                <th>Status</th>
                                 <th>Assigned Staff</th>
                                 <th className="text-end">Action</th>
                             </tr>
@@ -196,6 +197,11 @@ const Enquiries = () => {
                                         {enquiry.message}
                                     </td>
                                     <td>
+                                        <span className={`badge ${enquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                            {enquiry.status || 'Pending'}
+                                        </span>
+                                    </td>
+                                    <td>
                                         {enquiry.assigned_staff_name ? (
                                             <span className="badge badge-assigned-staff border">
                                                 <i className="bi bi-person-fill me-1"></i>
@@ -217,10 +223,21 @@ const Enquiries = () => {
                                                 className="action-btn btn-view"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleView(enquiry);
+                                                    handleView(enquiry, false);
                                                 }}
+                                                title="View"
                                             >
                                                 <i className="bi bi-eye"></i>
+                                            </button>
+                                            <button
+                                                className="action-btn btn-edit"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleView(enquiry, true);
+                                                }}
+                                                title="Edit"
+                                            >
+                                                <i className="bi bi-pencil-square"></i>
                                             </button>
                                             <button
                                                 className="action-btn btn-delete"
@@ -228,6 +245,7 @@ const Enquiries = () => {
                                                     e.stopPropagation();
                                                     handleDelete(enquiry.id);
                                                 }}
+                                                title="Delete"
                                             >
                                                 <i className="bi bi-trash"></i>
                                             </button>
@@ -262,33 +280,76 @@ const Enquiries = () => {
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
                             <div className="modal-header border-bottom-0">
-                                <h5 className="modal-title fw-bold">Enquiry Details</h5>
+                                <h5 className="modal-title fw-bold">{isEditMode ? 'Edit Enquiry' : 'Enquiry Details'}</h5>
                                 <button type="button" className="btn-close" onClick={closeModal}></button>
                             </div>
                             <div className="modal-body">
                                 <form onSubmit={handleUpdate}>
-                                    <div className="text-center mb-4">
-                                        <div className="avatar-initials mx-auto mb-3" style={{ width: '80px', height: '80px', fontSize: '2rem', backgroundColor: '#fd7e14', color: 'white' }}>
-                                            {selectedEnquiry.name.charAt(0)}
+                                    {!isEditMode ? (
+                                        <div className="text-center mb-4">
+                                            <div className="avatar-initials mx-auto mb-3" style={{ width: '80px', height: '80px', fontSize: '2rem', backgroundColor: '#fd7e14', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                                                {selectedEnquiry.name.charAt(0)}
+                                            </div>
+                                            <h4 className="fw-bold">{selectedEnquiry.name}</h4>
+                                            <p className="text-muted">{selectedEnquiry.location || 'Location not provided'}</p>
                                         </div>
-                                        <h4 className="fw-bold">{selectedEnquiry.name}</h4>
-                                        <p className="text-muted">{selectedEnquiry.location || 'Location not provided'}</p>
-                                    </div>
+                                    ) : (
+                                        <div className="row g-3 mb-3">
+                                            <div className="col-md-6">
+                                                <label className="form-label small fw-bold">Name</label>
+                                                <input className="form-control bg-light" value={selectedEnquiry.name} readOnly />
+                                            </div>
+                                            <div className="col-md-6">
+                                                <label className="form-label small fw-bold">Location</label>
+                                                <input className="form-control bg-light" value={selectedEnquiry.location || ''} readOnly />
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="card bg-light border-0 p-3 mb-3">
                                         <div className="row g-3">
                                             <div className="col-12">
                                                 <label className="text-secondary small fw-bold">Message</label>
-                                                <div className="p-2 bg-white rounded border border-light">
-                                                    {selectedEnquiry.message || 'No message provided'}
-                                                </div>
+                                                {isEditMode ? (
+                                                    <textarea className="form-control bg-light" rows="3" value={selectedEnquiry.message || ''} readOnly />
+                                                ) : (
+                                                    <div className="p-2 bg-white rounded border border-light">
+                                                        {selectedEnquiry.message || 'No message provided'}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="col-6">
                                                 <label className="text-secondary small fw-bold">Email</label>
-                                                <div className="fw-medium text-break">{selectedEnquiry.email || 'N/A'}</div>
+                                                {isEditMode ? (
+                                                    <input className="form-control bg-light" value={selectedEnquiry.email || ''} readOnly />
+                                                ) : (
+                                                    <div className="fw-medium text-break">{selectedEnquiry.email || 'N/A'}</div>
+                                                )}
                                             </div>
                                             <div className="col-6">
                                                 <label className="text-secondary small fw-bold">Mobile</label>
-                                                <div className="fw-medium">{selectedEnquiry.phone}</div>
+                                                {isEditMode ? (
+                                                    <input className="form-control bg-light" value={selectedEnquiry.phone} readOnly />
+                                                ) : (
+                                                    <div className="fw-medium">{selectedEnquiry.phone}</div>
+                                                )}
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="text-secondary small fw-bold">Status</label>
+                                                {isEditMode ? (
+                                                    <select
+                                                        className="form-select"
+                                                        value={selectedEnquiry.status || 'Pending'}
+                                                        onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, status: e.target.value })}
+                                                    >
+                                                        <option value="Pending">Pending</option>
+                                                        <option value="Connected">Connected</option>
+                                                    </select>
+                                                ) : (
+                                                    <div className={`badge ${selectedEnquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                                        {selectedEnquiry.status || 'Pending'}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -296,28 +357,47 @@ const Enquiries = () => {
                                     {(localStorage.getItem('role') === 'admin' || localStorage.getItem('role') === 'Admin') && (
                                         <div className="mb-3">
                                             <label className="form-label small fw-bold">Assigned Staff</label>
-                                            <select
-                                                className="form-select"
-                                                value={selectedEnquiry.assigned_staff || ''}
-                                                onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, assigned_staff: e.target.value })}
-                                            >
-                                                <option value="auto">Auto Allocate (Auto-assign to least loaded)</option>
-                                                <option value="">Unassigned</option>
-                                                {staffList.map((s, index) => (
-                                                    <option key={s.id} value={s.id}>
-                                                        {s.name} (#STF{String(index + 1).padStart(3, '0')})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <div className="form-text small">Use "Auto Allocate" to balance workload automatically.</div>
+                                            {isEditMode ? (
+                                                <>
+                                                    <select
+                                                        className="form-select"
+                                                        value={selectedEnquiry.assigned_staff || ''}
+                                                        onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, assigned_staff: e.target.value })}
+                                                    >
+                                                        <option value="auto">Auto Allocate (Auto-assign to least loaded)</option>
+                                                        <option value="">Unassigned</option>
+                                                        {staffList.map((s, index) => (
+                                                            <option key={s.id} value={s.id}>
+                                                                {s.name} (#STF{String(index + 1).padStart(3, '0')})
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="form-text small">Use "Auto Allocate" to balance workload automatically.</div>
+                                                </>
+                                            ) : (
+                                                <div className="fw-medium">
+                                                    {selectedEnquiry.assigned_staff_name ? (
+                                                        <span className="badge badge-assigned-staff border text-dark">
+                                                            <i className="bi bi-person-fill me-1"></i>
+                                                            {(() => {
+                                                                if (staffList.length > 0) {
+                                                                    const idx = staffList.findIndex(st => st.id === selectedEnquiry.assigned_staff);
+                                                                    if (idx !== -1) return `${staffList[idx].name} (#STF${String(idx + 1).padStart(3, '0')})`;
+                                                                }
+                                                                return selectedEnquiry.assigned_staff_name;
+                                                            })()}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted small"><em>Unassigned</em></span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
                                     <div className="d-flex gap-2 justify-content-center mt-4">
                                         <button type="button" className="btn btn-light rounded-pill px-4" onClick={closeModal}>Close</button>
-                                        {(localStorage.getItem('role') === 'admin' || localStorage.getItem('role') === 'Admin') && (
-                                            <button type="submit" className="btn btn-primary rounded-pill px-4">Update Assignment</button>
-                                        )}
+                                        {isEditMode && <button type="submit" className="btn btn-primary rounded-pill px-4">Save Changes</button>}
                                     </div>
                                 </form>
                             </div>

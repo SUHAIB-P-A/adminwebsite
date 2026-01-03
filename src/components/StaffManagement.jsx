@@ -2,14 +2,55 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './adminpanel/AdminPanel.css';
 
+const FIELD_CONFIG = [
+    { name: 'first_name', label: 'First Name', required: true, half: true },
+    { name: 'last_name', label: 'Last Name', required: true, half: true },
+    { name: 'email', label: 'Email', type: 'email', required: true, half: true },
+    { name: 'phone_number', label: 'Phone', required: true, half: true },
+    { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'], half: true },
+    { name: 'dob', label: 'Date of Birth', type: 'date', half: true },
+    { name: 'highest_qualification', label: 'Qualification', half: true },
+    { name: 'year_of_passing', label: 'Year of Passing', type: 'number', half: true },
+    { name: 'aggregate_percentage', label: 'Aggregate %', half: true },
+    { name: 'city', label: 'City' },
+    { name: 'course_selected', label: 'Course Selected' },
+    { name: 'colleges_selected', label: 'Colleges Selected', type: 'textarea' },
+];
+
 const StaffManagement = () => {
     const [staffList, setStaffList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modal, setModal] = useState({ type: null, data: null });
+    const [studentModal, setStudentModal] = useState({ type: null, data: null }); // For nested student actions
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [errors, setErrors] = useState({});
     const longPressTimer = useRef(null);
+
+    const renderInput = (f, val, handler) => {
+        const errorMsg = errors[f.name];
+        const hasError = !!errorMsg;
+        const props = {
+            name: f.name,
+            value: val[f.name] || '',
+            onChange: handler,
+            required: f.required,
+            className: `form-control ${hasError ? 'is-invalid' : ''}`,
+            placeholder: f.label
+        };
+
+        let inputElem;
+        if (f.type === 'select') inputElem = <select {...props} className={`form-select ${hasError ? 'is-invalid' : ''}`}><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
+        else if (f.type === 'textarea') inputElem = <textarea {...props} rows="2" />;
+        else inputElem = <input {...props} type={f.type || 'text'} />;
+
+        return (
+            <>
+                {inputElem}
+                {hasError && <div className="invalid-feedback">{Array.isArray(errorMsg) ? errorMsg[0] : errorMsg}</div>}
+            </>
+        );
+    };
 
     useEffect(() => {
         fetchStaff();
@@ -96,7 +137,7 @@ const StaffManagement = () => {
     };
 
     const viewStaffStudents = async (staffId, staffName) => {
-        setModal({ type: 'view_students', data: { name: staffName, students: [], enquiries: [], loading: true, activeTab: 'students' } });
+        setModal({ type: 'view_students', data: { id: staffId, name: staffName, students: [], enquiries: [], loading: true, activeTab: 'students' } });
         try {
             const [studentsRes, enquiriesRes] = await Promise.all([
                 axios.get('/api/submit/', { params: { staff_id: staffId } }),
@@ -109,6 +150,60 @@ const StaffManagement = () => {
         } catch (err) {
             showToast("Failed to load assignments", "danger");
             setModal({ type: null });
+        }
+    };
+
+    const handleStudentAction = async (method, url, payload = null, successMsg) => {
+        setErrors({});
+        try {
+            if (payload) await axios[method](url, payload);
+            else await axios[method](url);
+
+            setStudentModal({ type: 'success', data: { message: successMsg } });
+
+            // Refresh the list in the parent modal
+            if (modal.type === 'view_students' && modal.data?.id) {
+                const [studentsRes, enquiriesRes] = await Promise.all([
+                    axios.get('/api/submit/', { params: { staff_id: modal.data.id } }),
+                    axios.get('/api/enquiries/', { params: { staff_id: modal.data.id } })
+                ]);
+                setModal(prev => ({
+                    ...prev,
+                    data: { ...prev.data, students: studentsRes.data, enquiries: enquiriesRes.data }
+                }));
+            }
+        } catch (err) {
+            const errorData = err.response?.data;
+            if (errorData && typeof errorData === 'object') {
+                setErrors(errorData);
+                if (errorData.error || errorData.detail) showToast(errorData.error || errorData.detail, "danger");
+                else showToast("Please check the form for errors.", "danger");
+            } else {
+                showToast("Operation failed", "danger");
+            }
+        }
+    };
+
+    const handleEnquiryAction = async (method, url, payload = null, successMsg) => {
+        try {
+            if (payload) await axios[method](url, payload);
+            else await axios[method](url);
+
+            setStudentModal({ type: 'success', data: { message: successMsg } });
+
+            // Refresh the list in the parent modal
+            if (modal.type === 'view_students' && modal.data?.id) {
+                const [studentsRes, enquiriesRes] = await Promise.all([
+                    axios.get('/api/submit/', { params: { staff_id: modal.data.id } }),
+                    axios.get('/api/enquiries/', { params: { staff_id: modal.data.id } })
+                ]);
+                setModal(prev => ({
+                    ...prev,
+                    data: { ...prev.data, students: studentsRes.data, enquiries: enquiriesRes.data }
+                }));
+            }
+        } catch (err) {
+            showToast("Enquiry action failed", "danger");
         }
     };
 
@@ -443,6 +538,7 @@ const StaffManagement = () => {
                                                             <th>Course</th>
                                                             <th>Status</th>
                                                             <th>Joined</th>
+                                                            <th>Action</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -467,11 +563,18 @@ const StaffManagement = () => {
                                                                         </span>
                                                                     </td>
                                                                     <td className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
+                                                                    <td>
+                                                                        <div className="d-flex gap-1">
+                                                                            <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'view', data: st }); }}><i className="bi bi-eye"></i></button>
+                                                                            <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
+                                                                            <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
+                                                                        </div>
+                                                                    </td>
                                                                 </tr>
                                                             ))
                                                         ) : (
                                                             <tr>
-                                                                <td colSpan="5" className="text-center p-5 text-muted">
+                                                                <td colSpan="6" className="text-center p-5 text-muted">
                                                                     <i className="bi bi-inbox display-4 d-block mb-3 text-secondary opacity-25"></i>
                                                                     No students assigned yet.
                                                                 </td>
@@ -485,9 +588,9 @@ const StaffManagement = () => {
                                                         <tr>
                                                             <th className="px-3">#</th>
                                                             <th>Enquiry Name</th>
-                                                            <th>Contact</th>
-                                                            <th>Location</th>
                                                             <th>Message</th>
+                                                            <th>Status</th>
+                                                            <th>Action</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -499,14 +602,24 @@ const StaffManagement = () => {
                                                                         <div className="fw-medium">{enq.name}</div>
                                                                         <div className="small text-muted">{enq.email}</div>
                                                                     </td>
-                                                                    <td>{enq.phone}</td>
-                                                                    <td>{enq.location || 'N/A'}</td>
                                                                     <td title={enq.message} className="text-truncate" style={{ maxWidth: '200px' }}>{enq.message || '-'}</td>
+                                                                    <td>
+                                                                        <span className={`badge ${enq.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                                                            {enq.status || 'Pending'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div className="d-flex gap-1">
+                                                                            <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'view_enquiry', data: enq }); }}><i className="bi bi-eye"></i></button>
+                                                                            <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit_enquiry', data: enq }); }}><i className="bi bi-pencil-square"></i></button>
+                                                                            <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete_enquiry', data: { id: enq.id } }); }}><i className="bi bi-trash"></i></button>
+                                                                        </div>
+                                                                    </td>
                                                                 </tr>
                                                             ))
                                                         ) : (
                                                             <tr>
-                                                                <td colSpan="5" className="text-center p-5 text-muted">
+                                                                <td colSpan="6" className="text-center p-5 text-muted">
                                                                     <i className="bi bi-question-circle display-4 d-block mb-3 text-secondary opacity-25"></i>
                                                                     No enquiries assigned yet.
                                                                 </td>
@@ -540,6 +653,223 @@ const StaffManagement = () => {
                             <h5 className="fw-bold mb-2">Success!</h5>
                             <p className="text-muted mb-4">{modal.data?.message || 'Operation completed successfully.'}</p>
                             <button className="btn btn-success rounded-pill px-4 w-100" onClick={() => setModal({ type: null })}>OK</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Student Action Modals - Nested */}
+            {['view', 'edit'].includes(studentModal.type) && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="modal-header">
+                                <h5 className="fw-bold">{studentModal.type.toUpperCase()} Student</h5>
+                                <button className="btn-close" onClick={() => setStudentModal({ type: null })}></button>
+                            </div>
+                            <div className="modal-body">
+                                {studentModal.type === 'view' ? (
+                                    <div className="row g-3">
+                                        {Object.entries(studentModal.data).map(([k, v]) => v && k !== 'plus_two_percentage' && (
+                                            <div className="col-6" key={k}>
+                                                <label className="text-secondary small text-capitalize">{k.replace(/_/g, ' ')}</label>
+                                                <div className="fw-medium">{v}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <form onSubmit={(e) => {
+                                        e.preventDefault();
+                                        handleStudentAction('put', `/api/submit/${studentModal.data.id}/`, studentModal.data, "Updated!");
+                                    }}>
+                                        <div className="row g-3">
+                                            {FIELD_CONFIG.map(f => (
+                                                <div className={f.half ? "col-6" : "col-12"} key={f.name}>
+                                                    <label className="form-label small fw-bold">{f.label} {f.required && '*'}</label>
+                                                    {renderInput(f, studentModal.data, (e) => setStudentModal({ ...studentModal, data: { ...studentModal.data, [e.target.name]: e.target.value } }))}
+                                                </div>
+                                            ))}
+                                            <div className="col-12">
+                                                <label className="form-label small fw-bold">Status</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={studentModal.data.status || 'Pending'}
+                                                    onChange={(e) => setStudentModal({ ...studentModal, data: { ...studentModal.data, status: e.target.value } })}
+                                                >
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="In Progress">In Progress</option>
+                                                    <option value="Completed">Completed</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <button className="btn btn-primary w-100 rounded-pill mt-4">Update Student</button>
+                                    </form>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Student Delete Confirmation */}
+            {studentModal.type === 'delete' && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-sm modal-dialog-centered">
+                        <div className="modal-content text-center p-3">
+                            <i className="bi bi-exclamation-circle text-danger display-4"></i>
+                            <h5 className="fw-bold">Confirm Delete</h5>
+                            <p className="small text-muted">This action is permanent.</p>
+                            <div className="d-flex gap-2 justify-content-center">
+                                <button className="btn btn-light rounded-pill" onClick={() => setStudentModal({ type: null })}>Cancel</button>
+                                <button className="btn btn-danger rounded-pill px-4" onClick={() => handleStudentAction('delete', `/api/submit/${studentModal.data.id}/`, null, "Student deleted")}>Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Student Success Modal */}
+            {studentModal.type === 'success' && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1070 }}>
+                    <div className="modal-dialog modal-sm modal-dialog-centered">
+                        <div className="modal-content text-center p-4 border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="mb-3">
+                                <div className="mx-auto bg-success text-white d-flex align-items-center justify-content-center rounded-circle" style={{ width: '60px', height: '60px' }}>
+                                    <i className="bi bi-check-lg" style={{ fontSize: '2rem' }}></i>
+                                </div>
+                            </div>
+                            <h5 className="fw-bold mb-2">Success!</h5>
+                            <p className="text-muted mb-4">{studentModal.data?.message || 'Operation completed successfully.'}</p>
+                            <button className="btn btn-success rounded-pill px-4 w-100" onClick={() => setStudentModal({ type: null })}>OK</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Enquiry View Modal (Nested) */}
+            {studentModal.type === 'view_enquiry' && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="modal-header border-bottom-0">
+                                <h5 className="modal-title fw-bold">Enquiry Details</h5>
+                                <button type="button" className="btn-close" onClick={() => setStudentModal({ type: null })}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="text-center mb-4">
+                                    <div className="avatar-initials mx-auto mb-3" style={{ width: '80px', height: '80px', fontSize: '2rem', backgroundColor: '#fd7e14', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                                        {studentModal.data.name.charAt(0)}
+                                    </div>
+                                    <h4 className="fw-bold">{studentModal.data.name}</h4>
+                                    <p className="text-muted">{studentModal.data.location || 'Location not provided'}</p>
+                                </div>
+                                <div className="card bg-light border-0 p-3 mb-3">
+                                    <div className="row g-3">
+                                        <div className="col-12">
+                                            <label className="text-secondary small fw-bold">Message</label>
+                                            <div className="p-2 bg-white rounded border border-light">
+                                                {studentModal.data.message || 'No message provided'}
+                                            </div>
+                                        </div>
+                                        <div className="col-6">
+                                            <label className="text-secondary small fw-bold">Email</label>
+                                            <div className="fw-medium text-break">{studentModal.data.email || 'N/A'}</div>
+                                        </div>
+                                        <div className="col-6">
+                                            <label className="text-secondary small fw-bold">Mobile</label>
+                                            <div className="fw-medium">{studentModal.data.phone}</div>
+                                        </div>
+                                        <div className="col-6">
+                                            <label className="text-secondary small fw-bold">Status</label>
+                                            <span className={`badge ${studentModal.data.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                                {studentModal.data.status || 'Pending'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="d-flex justify-content-center mt-4">
+                                    <button type="button" className="btn btn-light rounded-pill px-4" onClick={() => setStudentModal({ type: null })}>Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Enquiry Edit Modal (Nested) */}
+            {studentModal.type === 'edit_enquiry' && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="modal-header border-bottom-0">
+                                <h5 className="modal-title fw-bold">Edit Enquiry</h5>
+                                <button type="button" className="btn-close" onClick={() => setStudentModal({ type: null })}></button>
+                            </div>
+                            <div className="modal-body">
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    handleEnquiryAction('put', `/api/enquiries/${studentModal.data.id}/`, studentModal.data, "Enquiry updated!");
+                                }}>
+                                    <div className="row g-3 mb-3">
+                                        <div className="col-md-6">
+                                            <label className="form-label small fw-bold">Name</label>
+                                            <input className="form-control bg-light" value={studentModal.data.name} readOnly />
+                                        </div>
+                                        <div className="col-md-6">
+                                            <label className="form-label small fw-bold">Location</label>
+                                            <input className="form-control bg-light" value={studentModal.data.location || ''} readOnly />
+                                        </div>
+                                    </div>
+                                    <div className="card bg-light border-0 p-3 mb-3">
+                                        <div className="row g-3">
+                                            <div className="col-12">
+                                                <label className="text-secondary small fw-bold">Message</label>
+                                                <textarea className="form-control bg-light" rows="3" value={studentModal.data.message || ''} readOnly />
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="text-secondary small fw-bold">Email</label>
+                                                <input className="form-control bg-light" value={studentModal.data.email || ''} readOnly />
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="text-secondary small fw-bold">Mobile</label>
+                                                <input className="form-control bg-light" value={studentModal.data.phone} readOnly />
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="text-secondary small fw-bold">Status</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={studentModal.data.status || 'Pending'}
+                                                    onChange={(e) => setStudentModal({ ...studentModal, data: { ...studentModal.data, status: e.target.value } })}
+                                                >
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Connected">Connected</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="d-flex gap-2 justify-content-center mt-4">
+                                        <button type="button" className="btn btn-light rounded-pill px-4" onClick={() => setStudentModal({ type: null })}>Close</button>
+                                        <button type="submit" className="btn btn-primary rounded-pill px-4">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Enquiry Delete Confirmation */}
+            {studentModal.type === 'delete_enquiry' && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1060 }}>
+                    <div className="modal-dialog modal-sm modal-dialog-centered">
+                        <div className="modal-content text-center p-3">
+                            <i className="bi bi-exclamation-circle text-danger display-4"></i>
+                            <h5 className="fw-bold">Confirm Delete</h5>
+                            <p className="small text-muted">This action is permanent.</p>
+                            <div className="d-flex gap-2 justify-content-center">
+                                <button className="btn btn-light rounded-pill" onClick={() => setStudentModal({ type: null })}>Cancel</button>
+                                <button className="btn btn-danger rounded-pill px-4" onClick={() => handleEnquiryAction('delete', `/api/enquiries/${studentModal.data.id}/`, null, "Enquiry deleted")}>Delete</button>
+                            </div>
                         </div>
                     </div>
                 </div>
