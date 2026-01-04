@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import './adminpanel/AdminPanel.css';
+import '../adminpanel/AdminPanel.css';
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ login_id: '', password: '' });

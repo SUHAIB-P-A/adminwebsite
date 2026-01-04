@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import './adminpanel/AdminPanel.css';
+import '../adminpanel/AdminPanel.css';
 
 
 

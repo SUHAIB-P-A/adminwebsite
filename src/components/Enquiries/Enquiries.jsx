@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import './adminpanel/AdminPanel.css'; // Reusing existing styles for consistency
+import '../adminpanel/AdminPanel.css'; // Reusing existing styles for consistency
 
 const Enquiries = () => {
     const [enquiries, setEnquiries] = useState([]);
