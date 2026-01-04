@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminPanel from './components/adminpanel/AdminPanel';
-import Students from './components/Students';
-import Enquiries from './components/Enquiries';
-import Login from './components/Login';
-import StaffManagement from './components/StaffManagement';
-import Home from './components/Home';
+import Students from './components/Students/Students';
+import Enquiries from './components/Enquiries/Enquiries';
+import Login from './components/Login/Login';
+import StaffManagement from './components/StaffManagement/StaffManagement';
+import Home from './components/Home/Home';
 import './App.css';
 
 // Protected Route Component
