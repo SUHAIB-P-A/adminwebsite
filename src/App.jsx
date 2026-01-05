@@ -5,6 +5,7 @@ import Enquiries from './components/Enquiries/Enquiries';
 import Login from './components/Login/Login';
 import StaffManagement from './components/StaffManagement/StaffManagement';
 import Home from './components/Home/Home';
+import Settings from './components/Settings/Settings';
 import './App.css';
 
 // Protected Route Component
@@ -52,7 +53,7 @@ function App() {
             } />
 
             <Route path="dashboard" element={<div className="p-4"><h2>Dashboard (Coming Soon)</h2></div>} />
-            <Route path="settings" element={<div className="p-4"><h2>Settings</h2></div>} />
+            <Route path="settings" element={<Settings />} />
           </Route>
 
           {/* Fallback */}

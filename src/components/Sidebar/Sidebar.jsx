@@ -6,10 +6,26 @@ const Sidebar = () => {
     const navigate = useNavigate();
     const [role, setRole] = useState('');
     const [name, setName] = useState('');
+    const [image, setImage] = useState(null);
 
     useEffect(() => {
-        setRole(localStorage.getItem('role') || 'staff');
-        setName(localStorage.getItem('staff_name') || 'User');
+        const loadUserInfo = () => {
+            setRole(localStorage.getItem('role') || 'staff');
+            setName(localStorage.getItem('staff_name') || 'User');
+            setImage(localStorage.getItem('staff_image'));
+        };
+
+        loadUserInfo();
+
+        const handleUserInfoUpdate = () => {
+            loadUserInfo();
+        };
+
+        window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
+
+        return () => {
+            window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
+        };
     }, []);
 
     const handleLogout = () => {
@@ -32,8 +48,12 @@ const Sidebar = () => {
             <div>
                 <div className="sidebar-header">
                     <div className="sidebar-logo-area">
-                        <div style={{ width: '40px', height: '40px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333' }}>
-                            <i className="bi bi-person-circle fs-4"></i>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', color: '#333' }}>
+                            {image ? (
+                                <img src={image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <i className="bi bi-person-circle fs-4"></i>
+                            )}
                         </div>
                         <div className="ms-3 text-white">
                             <small className="d-block opacity-75" style={{ fontSize: '0.75rem' }}>WELCOME</small>
