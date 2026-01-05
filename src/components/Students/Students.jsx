@@ -4,15 +4,18 @@ import '../adminpanel/AdminPanel.css';
 
 
 
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 21 }, (_, i) => currentYear - i);
+
 const FIELD_CONFIG = [
     { name: 'first_name', label: 'First Name', required: true, half: true },
     { name: 'last_name', label: 'Last Name', required: true, half: true },
     { name: 'email', label: 'Email', type: 'email', required: true, half: true },
     { name: 'phone_number', label: 'Phone', required: true, half: true },
-    { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'], half: true },
+    { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Others'], half: true },
     { name: 'dob', label: 'Date of Birth', type: 'date', half: true },
-    { name: 'highest_qualification', label: 'Qualification', half: true },
-    { name: 'year_of_passing', label: 'Year of Passing', type: 'number', half: true },
+    { name: 'highest_qualification', label: 'Qualification', type: 'select', options: ['10th Standard', '12th Standard', 'Diploma', "Bachelor's Degree", "Master's Degree", 'Others'], half: true },
+    { name: 'year_of_passing', label: 'Year of Passing', type: 'select', options: years, half: true },
     { name: 'aggregate_percentage', label: 'Aggregate %', half: true },
     { name: 'city', label: 'City' },
     { name: 'course_selected', label: 'Course Selected' },
