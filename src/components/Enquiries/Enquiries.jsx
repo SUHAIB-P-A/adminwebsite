@@ -90,7 +90,7 @@ const Enquiries = () => {
         }
     };
 
-    // Open Modal and Mark as Read
+    // Open Modal and Mark as Read (optimistic update)
     const handleView = async (enquiry, editMode = false) => {
         if (selection.active) {
             toggleId(enquiry.id);
@@ -101,19 +101,21 @@ const Enquiries = () => {
         setIsEditMode(editMode);
         setShowModal(true);
 
-        // Mark as read if not already
+        // Optimistically mark as read if not already, update server in background and revert on error
         if (!enquiry.is_read) {
+            // Optimistic UI update so shading disappears immediately
+            setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, is_read: true } : e));
             try {
                 const staffId = localStorage.getItem('staff_id');
                 const role = localStorage.getItem('role');
                 const params = (role !== 'admin' && role !== 'Admin' && staffId) ? { staff_id: staffId } : {};
 
                 await axios.put(`/api/enquiries/${enquiry.id}/`, { ...enquiry, is_read: true }, { params });
-
-                // Update local state
-                setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, is_read: true } : e));
             } catch (err) {
+                // Revert optimistic change on failure
+                setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, is_read: false } : e));
                 console.error("Failed to mark as read", err);
+                showToast("Failed to mark enquiry as read", "danger");
             }
         }
     };
@@ -236,7 +238,7 @@ const Enquiries = () => {
                                     onMouseDown={() => handleLongPress(enquiry.id)}
                                     onMouseUp={() => clearTimeout(longPressTimer.current)}
                                     onClick={() => handleView(enquiry, false)}
-                                    className={`${selection.ids.includes(enquiry.id) ? "table-active" : ""} ${!enquiry.is_read ? "fw-bold bg-light" : ""}`}
+                                    className={`${selection.ids.includes(enquiry.id) ? "table-active" : ""} ${!enquiry.is_read ? "fw-bold table-unread" : ""}`}
                                     style={{ cursor: 'pointer' }}
                                     title={selection.active ? "Select" : "Click to view details"}
                                 >

@@ -30,6 +30,8 @@ const Students = () => {
     const longPressTimer = useRef(null);
 
     const [staffList, setStaffList] = useState([]);
+    const [filter, setFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('Pending');
 
     const showToast = (msg, type = 'success') => {
         setToast({ show: true, msg, type });
@@ -108,6 +110,33 @@ const Students = () => {
         }, 800);
     };
 
+    // Open view modal and mark student as read (optimistic update)
+    const handleViewStudent = async (student) => {
+        if (selection.active) {
+            toggleId(student.id);
+            return;
+        }
+
+        setModal({ type: 'view', data: student });
+
+        // Optimistically mark as read so shading/N E W badge disappears immediately
+        if (!student.is_read) {
+            setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_read: true } : s));
+            try {
+                const staffId = localStorage.getItem('staff_id');
+                const role = localStorage.getItem('role');
+                const params = (role !== 'admin' && role !== 'Admin') ? { staff_id: staffId } : {};
+
+                await axios.put(`/api/submit/${student.id}/`, { ...student, is_read: true }, { params });
+            } catch (err) {
+                // Revert optimistic change on failure
+                setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_read: false } : s));
+                console.error('Failed to mark student as read', err);
+                showToast("Failed to mark student as read", "danger");
+            }
+        }
+    };
+
     const confirmDelete = () => {
         const isBulk = modal.data?.type === 'bulk';
         const url = (id) => `/api/submit/${id}/`;
@@ -141,6 +170,14 @@ const Students = () => {
         );
     };
 
+    const filteredStudents = students.filter(s => {
+        const normStatus = (s.status || 'Pending').toString().trim().toLowerCase();
+        const target = statusFilter ? statusFilter.toString().trim().toLowerCase() : '';
+        if (filter === 'unread') return !s.is_read;
+        if (filter === 'status') return target ? normStatus === target : true;
+        return true;
+    });
+
     return (
         <div className="p-4 page-anime">
             <div className="d-flex justify-content-between align-items-center mb-4">
@@ -150,11 +187,24 @@ const Students = () => {
                 </button>
             </div>
 
+            <div className="d-flex justify-content-between align-items-center mb-3 px-1">
+                <div className="d-flex gap-2">
+                    <button className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('all')}>All</button>
+                    <button className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('unread')}>Unread</button>
+                    <select className={`form-select form-select-sm rounded-pill px-3 ${filter === 'status' ? 'bg-dark text-white border-dark' : 'text-dark'}`} style={{ width: 'auto', minWidth: '130px', cursor: 'pointer' }} value={filter === 'status' ? statusFilter : ''} onChange={(e) => { const val = e.target.value; if (val) { setFilter('status'); setStatusFilter(val); } }}>
+                        <option value="" disabled>By Status</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
             <div className="custom-card table-responsive bg-white rounded shadow-sm custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
                 <table className="table table-hover mb-0 align-middle">
                     <thead className="bg-light sticky-top">
                         <tr>
-                            {selection.active && <th className="px-2 text-center" style={{ width: '5%' }}><input type="checkbox" className="form-check-input" checked={selection.ids.length === students.length} onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? students.map(s => s.id) : [] }))} /></th>}
+                            {selection.active && <th className="px-2 text-center" style={{ width: '5%' }}><input type="checkbox" className="form-check-input" checked={selection.ids.length === filteredStudents.length && filteredStudents.length > 0} onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? filteredStudents.map(s => s.id) : [] }))} /></th>}
                             <th style={{ width: '5%' }}>#ID</th>
                             <th style={{ width: selection.active ? '19%' : '20%' }}>Name</th>
                             <th style={{ width: '20%' }}>Course</th>
@@ -164,14 +214,14 @@ const Students = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? <tr><td colSpan="7" className="text-center p-4">Loading...</td></tr> : students.map((s, index) => (
+                        {loading ? <tr><td colSpan="7" className="text-center p-4">Loading...</td></tr> : filteredStudents.map((s, index) => (
                             <tr key={s.id}
                                 onMouseDown={() => handleLongPress(s.id)} onMouseUp={() => clearTimeout(longPressTimer.current)}
-                                onClick={() => selection.active && toggleId(s.id)}
-                                className={selection.ids.includes(s.id) ? "table-active" : ""}>
+                                onClick={() => handleViewStudent(s)}
+                                className={`${selection.ids.includes(s.id) ? "table-active" : ""} ${!s.is_read ? "fw-bold table-unread" : ""}`}>
                                 {selection.active && <td className="text-center"><input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" /></td>}
                                 <td className="fw-bold text-secondary">{index + 1}</td>
-                                <td>{s.first_name} {s.last_name}</td>
+                                <td>{s.first_name} {s.last_name} {!s.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}</td>
                                 <td>{s.course_selected || 'N/A'}</td>
                                 <td>
                                     <span className={`badge rounded-pill ${s.status === 'Completed' ? 'bg-success' :
@@ -201,7 +251,7 @@ const Students = () => {
                                 </td>
                                 <td>
                                     <div className="d-flex gap-1">
-                                        <button className="action-btn btn-view" onClick={(e) => { e.stopPropagation(); setModal({ type: 'view', data: s }); }}><i className="bi bi-eye"></i></button>
+                                        <button className="action-btn btn-view" onClick={(e) => { e.stopPropagation(); handleViewStudent(s); }}><i className="bi bi-eye"></i></button>
                                         <button className="action-btn btn-edit" onClick={(e) => { e.stopPropagation(); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
                                         <button className="action-btn btn-delete" onClick={(e) => { e.stopPropagation(); setModal({ type: 'delete', data: { id: s.id } }); }}><i className="bi bi-trash"></i></button>
                                     </div>

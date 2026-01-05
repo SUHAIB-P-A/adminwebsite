@@ -210,3 +210,15 @@ body {
   font-weight: 500;
   padding: 0.5em 0.8em;
 }
+
+/* Unread row styling */
+.table-unread {
+  background-color: #fff8e6; /* Soft warm cream for unread rows */
+}
+.custom-table tbody tr.table-unread:hover {
+  background-color: #fff3d6; /* Slightly stronger on hover */
+}
+.table-unread td {
+  /* Ensure cells inherit the row shading */
+  background-color: transparent;
+} 
