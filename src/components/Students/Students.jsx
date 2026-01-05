@@ -182,9 +182,7 @@ const Students = () => {
         <div className="p-4 page-anime">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="page-title mb-0">Student-forms</h1>
-                <button className="btn btn-primary rounded-pill px-4" onClick={() => setModal({ type: 'add', data: {} })}>
-                    <i className="bi bi-plus-lg me-2"></i> Add Student
-                </button>
+
             </div>
 
             <div className="d-flex justify-content-between align-items-center mb-3 px-1">
@@ -198,6 +196,9 @@ const Students = () => {
                         <option value="Completed">Completed</option>
                     </select>
                 </div>
+                <button className="btn btn-primary rounded-pill px-4" onClick={() => setModal({ type: 'add', data: {} })}>
+                    <i className="bi bi-plus-lg me-2"></i> Add Student
+                </button>
             </div>
 
             <div className="custom-card table-responsive bg-white rounded shadow-sm custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
