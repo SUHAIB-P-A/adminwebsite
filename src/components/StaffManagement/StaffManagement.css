@@ -1,4 +1,11 @@
-/* Scoped styles for StaffManagement component */
-.staff-management {
-  /* Add component-specific styles here */
+.unread-row {
+    background-color: #fff8e6 !important;
+    /* Soft warm cream for unread rows */
+    transition: background-color 0.3s ease;
+}
+
+.unread-row:hover {
+    background-color: #fff3d6 !important;
+    /* Slightly stronger on hover */
+    cursor: pointer;
 }

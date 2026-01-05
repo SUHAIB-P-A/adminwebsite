@@ -664,7 +664,7 @@ const StaffManagement = () => {
                                                                 return filtered.length > 0 ? (
                                                                     filtered.map((st, i) => (
                                                                         <tr key={st.id}
-                                                                            className={!st.is_read ? "fw-bold bg-light" : ""}
+                                                                            className={!st.is_read ? "fw-bold table-unread" : ""}
                                                                             onClick={() => handleViewStudent(st)}
                                                                             style={{ cursor: 'pointer' }}
                                                                             title="Click to view details"
@@ -706,7 +706,7 @@ const StaffManagement = () => {
                                                     </table>
                                                 </div>
                                             ) : (
-                                                <table className="table table-hover mb-0 align-middle table-striped">
+                                                <table className="table table-hover mb-0 align-middle">
                                                     <thead className="bg-light sticky-top">
                                                         <tr>
                                                             <th className="px-3">#</th>
@@ -727,7 +727,11 @@ const StaffManagement = () => {
 
                                                             return filteredEnquiries.length > 0 ? (
                                                                 filteredEnquiries.map((enq, i) => (
-                                                                    <tr key={enq.id} className={!enq.is_read ? "fw-bold bg-light" : ""}>
+                                                                    <tr key={enq.id}
+                                                                        className={!enq.is_read ? "fw-bold table-unread" : ""}
+                                                                        onClick={() => handleViewEnquiry(enq)}
+                                                                        style={{ cursor: 'pointer' }}
+                                                                    >
                                                                         <td className="px-3 fw-bold text-secondary">{i + 1}</td>
                                                                         <td>
                                                                             <div className="fw-medium">{enq.name} {!enq.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
