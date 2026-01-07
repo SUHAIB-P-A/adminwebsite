@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LegalModal from './LegalModal';
 import EditProfileModal from './EditProfileModal';
@@ -91,7 +91,58 @@ const Settings = () => {
     const [showEditProfile, setShowEditProfile] = useState(false);
 
     useEffect(() => {
-        // Load user info
+        const fetchUserProfile = async () => {
+            const staffId = localStorage.getItem('staff_id');
+            // If we have a staffId and it's not a local-only user
+            if (staffId && staffId !== 'local') {
+                try {
+                    const response = await axios.get(`/api/staff/${staffId}/`);
+                    const data = response.data;
+
+                    // Update Local Storage with fresh data from server
+                    localStorage.setItem('staff_name', data.name || 'User');
+                    localStorage.setItem('staff_email', data.email || '');
+                    localStorage.setItem('staff_phone', data.phone || '');
+                    localStorage.setItem('staff_dob', data.dob || '');
+                    localStorage.setItem('staff_gender', data.gender || '');
+                    if (data.profile_image) {
+                        localStorage.setItem('staff_image', data.profile_image);
+                    } else {
+                        localStorage.removeItem('staff_image');
+                    }
+
+                    // Update State
+                    setUser(prev => ({
+                        ...prev,
+                        name: data.name || '',
+                        email: data.email || '',
+                        phone: data.phone || '',
+                        dob: data.dob || '',
+                        gender: data.gender || '',
+                        image: data.profile_image || null,
+                        role: data.role || prev.role // Assuming role might come from backend too
+                    }));
+
+                    // Update snapshot
+                    const profileKey = `staff_profile_${staffId}`;
+                    const profileToSave = {
+                        name: data.name || '',
+                        dob: data.dob || '',
+                        gender: data.gender || '',
+                        phone: data.phone || '',
+                        email: data.email || '',
+                        image: data.profile_image || null
+                    };
+                    localStorage.setItem(profileKey, JSON.stringify(profileToSave));
+
+                } catch (error) {
+                    console.error("Failed to fetch user profile", error);
+                    // Fallback to local storage is already handled by initial state or below logic if we want
+                }
+            }
+        };
+
+        // Load initial user info from local storage first (fast load)
         const storedRole = localStorage.getItem('role') || 'Admin';
         const storedName = localStorage.getItem('staff_name') || 'Admin User';
         const storedDob = localStorage.getItem('staff_dob') || '';
@@ -110,6 +161,8 @@ const Settings = () => {
             image: storedImage
         });
 
+        // specific check: if we just logged in or reloaded, fetch fresh data
+        fetchUserProfile();
 
         // Check for edit query param
         if (searchParams.get('edit') === 'true') {
@@ -138,11 +191,44 @@ const Settings = () => {
         setLegalModal({ ...legalModal, show: false });
     };
 
-    const handleSaveProfile = (updatedData) => {
+    const handleSaveProfile = async (updatedData) => {
         // Only apply updates if there are changes
         if (!updatedData || Object.keys(updatedData).length === 0) {
             showToast('No changes made.');
             return;
+        }
+
+        const staffId = localStorage.getItem('staff_id');
+        const isBootstrapAdmin = !staffId || staffId === 'null' || staffId === 'undefined' || staffId === '';
+
+        if (isBootstrapAdmin) {
+            // Warn user if they are using the temporary bootstrap admin account
+            alert("Warning: You are logged in as the temporary Bootstrap Admin (no database record). Changes will be local-only and lost upon logout. Please create a real Admin account for persistent storage.");
+            // We allow proceeding to update local state for the session, but it won't persist.
+        }
+
+        if (staffId && staffId !== 'local') {
+            try {
+                const apiPayload = {};
+                // Map frontend keys to backend expectations - ONLY send changed fields
+                if (updatedData.name !== undefined) apiPayload.name = updatedData.name;
+                if (updatedData.email !== undefined) apiPayload.email = updatedData.email;
+                if (updatedData.phone !== undefined) apiPayload.phone = updatedData.phone;
+                if (updatedData.dob !== undefined) apiPayload.dob = updatedData.dob;
+                if (updatedData.gender !== undefined) apiPayload.gender = updatedData.gender;
+                if (updatedData.image !== undefined) apiPayload.profile_image = updatedData.image;
+
+                // Send partial update
+                await axios.put(`/api/staff/${staffId}/`, apiPayload);
+
+                // Only if backend success, proceed to update local state
+
+            } catch (err) {
+                console.error("Backend save failed", err);
+                const errorMsg = err.response?.data?.error || err.response?.data?.detail || 'Failed to save to server.';
+                showToast(errorMsg, 'danger');
+                return; // STOP here. Do not update local UI if backend failed.
+            }
         }
 
         setUser(prev => ({ ...prev, ...updatedData }));
@@ -157,7 +243,12 @@ const Settings = () => {
 
         if (Object.prototype.hasOwnProperty.call(updatedData, 'image')) {
             if (updatedData.image) {
-                localStorage.setItem('staff_image', updatedData.image);
+                try {
+                    localStorage.setItem('staff_image', updatedData.image);
+                } catch (e) {
+                    console.warn("Profile image too large for local storage.", e);
+                    showToast('Profile image too large to cache locally, but saved to server.', 'warning');
+                }
             } else {
                 // If explicitly set to null/empty, remove the stored image
                 localStorage.removeItem('staff_image');
@@ -165,7 +256,7 @@ const Settings = () => {
         }
 
         // Also persist a full profile snapshot keyed by staff_id so it survives logout/login
-        const staffId = localStorage.getItem('staff_id') || 'local';
+        const sId = localStorage.getItem('staff_id') || 'local';
         const profileToSave = {
             name: Object.prototype.hasOwnProperty.call(updatedData, 'name') ? updatedData.name : (localStorage.getItem('staff_name') || user.name || ''),
             dob: Object.prototype.hasOwnProperty.call(updatedData, 'dob') ? updatedData.dob : (localStorage.getItem('staff_dob') || user.dob || ''),
@@ -175,7 +266,7 @@ const Settings = () => {
             image: Object.prototype.hasOwnProperty.call(updatedData, 'image') ? (updatedData.image || null) : (localStorage.getItem('staff_image') || user.image || null)
         };
         try {
-            localStorage.setItem(`staff_profile_${staffId}`, JSON.stringify(profileToSave));
+            localStorage.setItem(`staff_profile_${sId}`, JSON.stringify(profileToSave));
         } catch (e) {
             // ignore storage errors
             console.warn('Failed to save profile snapshot', e);
@@ -332,4 +423,3 @@ const Settings = () => {
 };
 
 export default Settings;
-

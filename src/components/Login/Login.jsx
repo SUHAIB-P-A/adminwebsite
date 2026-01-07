@@ -42,39 +42,40 @@ const Login = () => {
             localStorage.setItem('role', userRole);
             localStorage.setItem('staff_id', data.staff_id || '');
 
-            // If we have a local saved profile for this staff_id, prefer that so local edits survive logout/login
-            const profileKey = `staff_profile_${data.staff_id || 'local'}`;
-            const savedProfile = localStorage.getItem(profileKey);
-            if (savedProfile) {
+            // Update localStorage with Server Data (Source of Truth)
+            // We use '||' to provide defaults if server returns null/empty, guaranteeing no data bleed from previous user.
+            localStorage.setItem('staff_name', data.name || (userRole === 'admin' ? 'Administrator' : 'User'));
+            localStorage.setItem('staff_email', data.email || '');
+            localStorage.setItem('staff_phone', data.phone || '');
+            localStorage.setItem('staff_dob', data.dob || '');
+            localStorage.setItem('staff_gender', data.gender || '');
+
+            if (data.image) {
                 try {
-                    const profile = JSON.parse(savedProfile);
-                    if (profile.name) localStorage.setItem('staff_name', profile.name);
-                    if (profile.dob) localStorage.setItem('staff_dob', profile.dob);
-                    if (profile.gender) localStorage.setItem('staff_gender', profile.gender);
-                    if (profile.phone) localStorage.setItem('staff_phone', profile.phone);
-                    if (profile.email) localStorage.setItem('staff_email', profile.email);
-                    if (profile.image) localStorage.setItem('staff_image', profile.image);
+                    localStorage.setItem('staff_image', data.image);
                 } catch (e) {
-                    // If parsing fails, fall back to server-provided values
-                    localStorage.setItem('staff_name', data.name || 'User');
+                    console.warn("Profile image too large for local storage. Skipping cache.", e);
+                    // We knowingly skip saving the image to local storage if it's too big.
+                    // The user can still login, but might see a placeholder or need to fetch image differently.
+                    localStorage.removeItem('staff_image');
                 }
             } else {
-                // No saved local profile: use server provided fields and persist a snapshot
-                localStorage.setItem('staff_name', data.name || 'User');
-                if (data.email) localStorage.setItem('staff_email', data.email);
-                if (data.phone) localStorage.setItem('staff_phone', data.phone);
-                const profileToSave = {
-                    name: data.name || 'User',
-                    dob: data.dob || '',
-                    gender: data.gender || '',
-                    phone: data.phone || '',
-                    email: data.email || '',
-                    image: data.image || null
-                };
-                try {
-                    localStorage.setItem(profileKey, JSON.stringify(profileToSave));
-                } catch (e) { /* ignore */ }
+                localStorage.removeItem('staff_image');
             }
+
+            // Create/Update snapshot
+            const profileKey = `staff_profile_${data.staff_id || 'local'}`;
+            const profileToSave = {
+                name: data.name || (userRole === 'admin' ? 'Administrator' : 'User'),
+                dob: data.dob || '',
+                gender: data.gender || '',
+                phone: data.phone || '',
+                email: data.email || '',
+                image: data.image || null
+            };
+            try {
+                localStorage.setItem(profileKey, JSON.stringify(profileToSave));
+            } catch (e) { /* ignore */ }
 
             navigate('/portal/students');
         } catch (err) {
