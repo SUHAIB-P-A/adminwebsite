@@ -314,7 +314,7 @@ body {
     display: none;
   }
 
-  /* GRID LAYOUT for Mobile Cards (Students & Staff) */
+  /* GRID LAYOUT for Mobile Cards (Students & Staff) - MATCH STUDENTS */
   .custom-table tbody tr {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -322,12 +322,35 @@ body {
       "name action"
       "status action";
     gap: 0.5rem;
-    margin-bottom: 1rem;
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    border: 1px solid var(--border-color);
+    margin-bottom: 1.25rem;
+    /* Increased margin for separation */
+    border-radius: 20px;
+    /* Softer, more modern corners */
+    padding: 1.5rem;
+    /* More breathing room */
+    border: none;
+    /* Remove hard border */
     background: var(--card-bg);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 8px 24px rgba(149, 157, 165, 0.15);
+    /* Premium soft shadow */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .custom-table tbody tr:active {
+    transform: scale(0.98);
+  }
+
+  /* Highlight unread cards on mobile like desktop */
+  .custom-table tbody tr.table-unread {
+    background-color: #fff8e6;
+  }
+  .custom-table tbody tr.table-unread:hover {
+    background-color: #fff3d6;
+  }
+  .custom-table tbody tr.table-unread .col-name,
+  .custom-table tbody tr.table-unread .col-status,
+  .custom-table tbody tr.table-unread .col-message {
+    color: #5a3e00; /* slightly darker for contrast */
   }
 
   .custom-table tbody td {
@@ -339,16 +362,31 @@ body {
   /* Specific Areas */
   .col-name {
     grid-area: name;
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: 1.25rem;
+    /* Slightly larger */
+    font-weight: 800;
+    /* Bolder */
+    color: #0f2e5e;
+    /* Brand Color for Name */
     align-self: end;
+    letter-spacing: -0.02em;
+  }
+
+  /* Mobile-only message preview inside name card */
+  .col-name .message-preview {
+    display: block;
+    color: #444;
+    font-size: 0.95rem;
+    white-space: normal;
+    margin-top: 0.35rem;
+    max-height: 4.2rem;
+    overflow: hidden;
   }
 
   .col-status {
     grid-area: status;
     align-self: start;
-    margin-top: 0.3rem;
+    margin-top: 0.5rem;
   }
 
   .col-action {
@@ -363,19 +401,23 @@ body {
   .col-staff,
   .col-select,
   td[data-label="ID"],
-  td[data-label="Course"] {
+  td[data-label="Course"],
+  td[data-label="Message"],
+  .col-name .avatar-initials {
     display: none !important;
   }
 
   /* Button Tweaks for Mobile */
   .action-btn {
-    width: 44px;
-    height: 44px;
-    margin-left: 0.5rem;
-    border-radius: 8px !important;
-    /* Soft square Look */
-    font-size: 1.1rem;
-    /* Bigger icons */
+    width: 48px;
+    /* Larger hit targets */
+    height: 48px;
+    margin-left: 0.75rem;
+    border-radius: 12px !important;
+    /* Matches card softness */
+    font-size: 1.25rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    /* Subtle depth */
   }
 
   .d-flex.gap-2::-webkit-scrollbar {

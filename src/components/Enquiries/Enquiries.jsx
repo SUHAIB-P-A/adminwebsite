@@ -182,7 +182,7 @@ const Enquiries = () => {
             <h1 className="page-title">Enquiries</h1>
 
             {/* Sorting/Filtering Controls */}
-            <div className="d-flex justify-content-between align-items-center mb-3 px-1">
+            <div className="d-flex justify-content-between align-items-center mb-3 px-1 controls-row">
                 <div className="d-flex gap-2">
                     <button
                         className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`}
@@ -256,17 +256,22 @@ const Enquiries = () => {
                                             <div className="avatar-initials bg-secondary text-white mr-2">
                                                 {enquiry.name.charAt(0)}
                                             </div>
-                                            <span className={!enquiry.is_read ? "fw-bold text-dark" : "fw-medium text-dark"}>{enquiry.name}</span>
+                                            <span className={!enquiry.is_read ? "fw-bold" : "fw-medium"}>{enquiry.name}</span>
                                             {!enquiry.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}
                                         </div>
+                                        {/* Mobile-only preview for message (keeps card compact like Students) */}
+                                        <div className="message-preview d-md-none text-muted small">{enquiry.message ? (enquiry.message.length > 120 ? enquiry.message.slice(0, 120) + '…' : enquiry.message) : ''}</div>
                                     </td>
                                     <td data-label="Message" className="col-message text-truncate" style={{ maxWidth: '200px' }}>
                                         <span className={!enquiry.is_read ? "fw-bold text-dark" : "text-muted"}>{enquiry.message}</span>
                                     </td>
                                     <td data-label="Status" className="col-status">
-                                        <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${enquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                            Status: {enquiry.status || 'Pending'}
-                                        </span>
+                                        <div className="d-flex align-items-center gap-2">
+                                            <span className="status-label d-md-none text-secondary small">Status:</span>
+                                            <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${enquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                                {enquiry.status || 'Pending'}
+                                            </span>
+                                        </div>
                                     </td>
                                     {isAdmin && (
                                         <td data-label="Assigned Staff" className="col-staff">
@@ -290,7 +295,6 @@ const Enquiries = () => {
                                         <div className="d-flex justify-content-end gap-2">
                                             <button
                                                 className="action-btn btn-view rounded"
-                                                style={{ width: '38px', height: '38px' }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleView(enquiry, false);
@@ -301,7 +305,6 @@ const Enquiries = () => {
                                             </button>
                                             <button
                                                 className="action-btn btn-edit rounded"
-                                                style={{ width: '38px', height: '38px' }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleView(enquiry, true);
@@ -312,7 +315,6 @@ const Enquiries = () => {
                                             </button>
                                             <button
                                                 className="action-btn btn-delete rounded"
-                                                style={{ width: '38px', height: '38px' }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDelete(enquiry.id);

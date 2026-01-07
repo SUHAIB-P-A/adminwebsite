@@ -209,7 +209,7 @@ const Students = () => {
             </div>
 
             <div className="custom-card table-responsive bg-white rounded shadow-sm custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-                <table className="table table-hover mb-0 align-middle">
+                <table className="custom-table table-hover mb-0 align-middle">
                     <thead className="bg-light sticky-top">
                         <tr>
                             {selection.active && <th className="px-2 text-center" style={{ width: '5%' }}><input type="checkbox" className="form-check-input" checked={selection.ids.length === filteredStudents.length && filteredStudents.length > 0} onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? filteredStudents.map(s => s.id) : [] }))} /></th>}
