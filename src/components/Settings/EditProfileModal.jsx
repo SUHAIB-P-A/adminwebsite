@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../utils/cropUtils';
+import imageCompression from 'browser-image-compression';
 
 const EditProfileModal = ({ show, onClose, user, onSave }) => {
     // Form State
@@ -43,26 +44,48 @@ const EditProfileModal = ({ show, onClose, user, onSave }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleImageChange = (e) => {
+    const handleImageChange = async (e) => {
         const file = e.target.files[0];
         setError('');
         if (file) {
-            // 2MB Size Limit
-            const maxSize = 2 * 1024 * 1024;
-            if (file.size > maxSize) {
-                setError("Image is too large! Max size is 2MB.");
-                e.target.value = '';
-                return;
-            }
+            // If file is > 5MB, maybe reject outright as too huge, or try to compress.
+            // Let's try to compress any image to ensure it's web-optimized.
 
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImageToCrop(reader.result);
-                setIsCropping(true); // Open cropper
-                setZoom(1);
-                setCrop({ x: 0, y: 0 });
+            const options = {
+                maxSizeMB: 1,          // Compress to ~1MB
+                maxWidthOrHeight: 1920, // max width/height
+                useWebWorker: true
             };
-            reader.readAsDataURL(file);
+
+            try {
+                let processedFile = file;
+                // Only compress if larger than 1MB to avoid degrading small quality images unnecessarily,
+                // or if we just want uniform optimization, compress everything.
+                if (file.size > 1024 * 1024) {
+                    processedFile = await imageCompression(file, options);
+                }
+
+                // Final safety check after compression
+                const maxSize = 2 * 1024 * 1024;
+                if (processedFile.size > maxSize) {
+                    setError("Image is still too large after compression. Please pick a smaller image.");
+                    e.target.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setImageToCrop(reader.result);
+                    setIsCropping(true); // Open cropper
+                    setZoom(1);
+                    setCrop({ x: 0, y: 0 });
+                };
+                reader.readAsDataURL(processedFile);
+
+            } catch (err) {
+                console.error("Compression error:", err);
+                setError("Failed to process image. Please try another.");
+            }
         }
         // Reset input so same file selection triggers change again if needed
         e.target.value = '';

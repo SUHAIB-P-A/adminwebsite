@@ -9,3 +9,16 @@
     /* Slightly stronger on hover */
     cursor: pointer;
 }
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+    .custom-card.table-responsive { padding: 0; }
+    .table thead th { font-size: 0.85rem; }
+    .table td { font-size: 0.9rem; }
+    .action-btn { width: 28px; height: 28px; }
+}
+
+@media (max-width: 480px) {
+    .table thead th, .table td { padding: 0.5rem; }
+    .badge { font-size: 0.65rem; padding: 0.3rem 0.5rem; }
+}

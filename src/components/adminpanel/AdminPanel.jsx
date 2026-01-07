@@ -6,12 +6,9 @@ import './AdminPanel.css';
 const AdminPanel = () => {
     const navigate = useNavigate();
     const [showAccountCard, setShowAccountCard] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [user, setUser] = useState({
-        name: '',
-        role: '',
-        image: null,
-        email: '',
-        phone: ''
+        name: '', role: '', image: null, email: '', phone: ''
     });
 
     useEffect(() => {
@@ -39,12 +36,29 @@ const AdminPanel = () => {
         setShowAccountCard(!showAccountCard);
     };
 
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    };
+
+    const closeSidebar = () => {
+        setIsSidebarOpen(false);
+    };
+
     return (
         <div className="app-container">
-            <Sidebar />
+            {/* Backdrop for mobile */}
+            {isSidebarOpen && <div className="sidebar-backdrop d-md-none" onClick={closeSidebar}></div>}
+
+            <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
+
             <main className="main-content">
                 {/* Top header */}
-                <div className="d-flex justify-content-end p-3 position-relative">
+                <div className="d-flex justify-content-between justify-content-md-end p-3 position-relative align-items-center">
+                    {/* Hamburger Menu (Mobile Only) */}
+                    <button className="btn btn-light d-md-none rounded shadow-sm me-3" onClick={toggleSidebar}>
+                        <i className="bi bi-list fs-4"></i>
+                    </button>
+
                     <div className="d-flex gap-3 align-items-center">
                         {/* Icons */}
                         <button className="btn btn-light rounded-circle shadow-sm"><i className="bi bi-chat"></i></button>

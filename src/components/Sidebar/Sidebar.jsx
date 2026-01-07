@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import '../adminpanel/AdminPanel.css';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, closeSidebar }) => {
     const navigate = useNavigate();
     const [role, setRole] = useState('');
     const [name, setName] = useState('');
@@ -29,10 +29,8 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = () => {
-        // Remove authentication/session keys but keep persisted profile snapshots so local edits survive logout
         localStorage.removeItem('staff_id');
         localStorage.removeItem('role');
-        // If you store auth tokens, remove them here as well (e.g., localStorage.removeItem('auth_token'))
         navigate('/');
     };
 
@@ -47,10 +45,10 @@ const Sidebar = () => {
     ];
 
     return (
-        <div className="sidebar d-flex flex-column justify-content-between">
+        <div className={`sidebar d-flex flex-column justify-content-between ${isOpen ? 'show' : ''}`}>
             <div>
-                <div className="sidebar-header">
-                    <div className="sidebar-logo-area d-flex flex-column align-items-center text-center">
+                <div className="sidebar-header d-flex justify-content-between align-items-start">
+                    <div className="sidebar-logo-area d-flex flex-column align-items-center text-center w-100">
                         <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', color: '#333' }}>
                             {image ? (
                                 <img src={image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -63,6 +61,10 @@ const Sidebar = () => {
                             <h5 className="mb-0 fw-bold">{name}</h5>
                         </div>
                     </div>
+                    {/* Close button for mobile */}
+                    <button className="btn btn-link text-white d-md-none position-absolute top-0 end-0 p-3" onClick={closeSidebar}>
+                        <i className="bi bi-x-lg fs-4"></i>
+                    </button>
                 </div>
                 <ul className="nav flex-column sidebar-nav mt-3">
                     {menuItems.map((item) => (
@@ -70,6 +72,9 @@ const Sidebar = () => {
                             <NavLink
                                 to={item.path}
                                 className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                                onClick={() => {
+                                    if (window.innerWidth < 768) closeSidebar();
+                                }}
                             >
                                 <i className={`bi ${item.icon} me-2`}></i>
                                 {item.label}

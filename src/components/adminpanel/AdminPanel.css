@@ -235,3 +235,168 @@ body {
   display: flex;
   align-items: center;
 }
+
+/* BACKDROP for Mobile */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  /* Below sidebar, above content */
+  backdrop-filter: blur(2px);
+}
+
+/* RESPONSIVE MEDIA QUERIES */
+
+/* Tablet & Mobile (<768px) */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    width: 280px;
+    /* Slightly wider for touch targets */
+    border-radius: 0;
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+    box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  /* Controls Row: Stack reverse on mobile so Add button is top */
+  .controls-row {
+    flex-direction: column-reverse;
+    gap: 1rem;
+    align-items: stretch !important;
+    /* Full width children */
+  }
+
+  .controls-row .d-flex.gap-2 {
+    justify-content: flex-start;
+    /* keep filters together */
+    overflow-x: auto;
+    padding-bottom: 5px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .controls-row .btn-primary {
+    width: 100%;
+    /* Full width Add button */
+    padding: 0.8rem !important;
+    /* Bigger touch target */
+  }
+
+  .controls-row .form-select {
+    flex-grow: 1;
+    /* Allow dropdown to take space if needed */
+  }
+
+  .custom-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Convert tables to stacked cards for easier mobile scanning */
+  .custom-table thead {
+    display: none;
+  }
+
+  /* GRID LAYOUT for Mobile Cards (Students & Staff) */
+  .custom-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name action"
+      "status action";
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+
+  .custom-table tbody td {
+    border: none;
+    padding: 0;
+    display: block;
+  }
+
+  /* Specific Areas */
+  .col-name {
+    grid-area: name;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    align-self: end;
+  }
+
+  .col-status {
+    grid-area: status;
+    align-self: start;
+    margin-top: 0.3rem;
+  }
+
+  .col-action {
+    grid-area: action;
+    align-self: center;
+    justify-self: end;
+  }
+
+  /* Hide other columns on mobile to match "Clean Card" look */
+  .col-id,
+  .col-course,
+  .col-staff,
+  .col-select,
+  td[data-label="ID"],
+  td[data-label="Course"] {
+    display: none !important;
+  }
+
+  /* Button Tweaks for Mobile */
+  .action-btn {
+    width: 44px;
+    height: 44px;
+    margin-left: 0.5rem;
+    border-radius: 8px !important;
+    /* Soft square Look */
+    font-size: 1.1rem;
+    /* Bigger icons */
+  }
+
+  .d-flex.gap-2::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Small screens tweaks (<576px) */
+@media (max-width: 576px) {
+
+  /* Make dialogs nearly full width and touch-friendly */
+  .modal-dialog {
+    max-width: 95% !important;
+    margin: 0.5rem;
+  }
+
+  .modal-content {
+    border-radius: 12px;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+}

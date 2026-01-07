@@ -36,6 +36,10 @@ const Students = () => {
     const [filter, setFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('Pending');
 
+    // Role check: hide Assigned Staff column for non-admin users
+    const role = localStorage.getItem('role');
+    const isAdmin = role === 'admin' || role === 'Admin';
+
     const showToast = (msg, type = 'success') => {
         setToast({ show: true, msg, type });
         setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 3000);
@@ -188,7 +192,7 @@ const Students = () => {
 
             </div>
 
-            <div className="d-flex justify-content-between align-items-center mb-3 px-1">
+            <div className="d-flex justify-content-between align-items-center mb-3 px-1 controls-row">
                 <div className="d-flex gap-2">
                     <button className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('all')}>All</button>
                     <button className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('unread')}>Unread</button>
@@ -213,51 +217,56 @@ const Students = () => {
                             <th style={{ width: selection.active ? '19%' : '20%' }}>Name</th>
                             <th style={{ width: '20%' }}>Course</th>
                             <th style={{ width: '15%' }}>Status</th>
-                            <th style={{ width: '20%' }}>Assigned Staff</th>
+                            {isAdmin && <th style={{ width: '20%' }}>Assigned Staff</th>}
                             <th style={{ width: '20%' }}>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? <tr><td colSpan="7" className="text-center p-4">Loading...</td></tr> : filteredStudents.map((s, index) => (
+                        {loading ? <tr><td colSpan={6 - (isAdmin ? 0 : 1) + (selection.active ? 1 : 0)} className="text-center p-4">Loading...</td></tr> : filteredStudents.map((s, index) => (
                             <tr key={s.id}
                                 onMouseDown={() => handleLongPress(s.id)} onMouseUp={() => clearTimeout(longPressTimer.current)}
                                 onClick={() => handleViewStudent(s)}
                                 className={`${selection.ids.includes(s.id) ? "table-active" : ""} ${!s.is_read ? "fw-bold table-unread" : ""}`}>
-                                {selection.active && <td className="text-center"><input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" /></td>}
-                                <td className="fw-bold text-secondary">{index + 1}</td>
-                                <td>{s.first_name} {s.last_name} {!s.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}</td>
-                                <td>{s.course_selected || 'N/A'}</td>
-                                <td>
-                                    <span className={`badge rounded-pill ${s.status === 'Completed' ? 'bg-success' :
-                                        s.status === 'In Progress' ? 'bg-primary' :
-                                            s.status === 'Pending' ? 'bg-warning text-dark' :
-                                                'bg-secondary'
-                                        }`}>
-                                        {s.status || 'Pending'}
-                                    </span>
-                                </td>
-                                <td>
-                                    {s.assigned_staff_name ? (
-                                        <span className="badge badge-assigned-staff border">
-                                            <i className="bi bi-person-fill me-1"></i>
-                                            {(() => {
-                                                if (staffList.length > 0) {
-                                                    const idx = staffList.findIndex(st => st.id === s.assigned_staff);
-                                                    // Use the name from the fresh staffList to ensure consistency
-                                                    if (idx !== -1) return `${staffList[idx].name} (#STF${String(idx + 1).padStart(3, '0')})`;
-                                                }
-                                                return s.assigned_staff_name;
-                                            })()}
+                                {selection.active && <td data-label="Select" className="text-center col-select"><input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" /></td>}
+                                <td data-label="ID" className="fw-bold text-secondary col-id">{index + 1}</td>
+                                <td data-label="Name" className="col-name">{s.first_name} {s.last_name} {!s.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}</td>
+                                <td data-label="Course" className="col-course">{s.course_selected || 'N/A'}</td>
+                                <td data-label="Status" className="col-status">
+                                    <div className="d-flex align-items-center gap-2">
+                                        <span className="status-label d-md-none text-secondary small">Status:</span>
+                                        <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${s.status === 'Completed' ? 'bg-success' :
+                                            s.status === 'In Progress' ? 'bg-primary' :
+                                                s.status === 'Pending' ? 'bg-warning text-dark' :
+                                                    'bg-secondary'
+                                            }`}>
+                                            {s.status || 'Pending'}
                                         </span>
-                                    ) : (
-                                        <span className="text-muted small"><em>Unassigned</em></span>
-                                    )}
+                                    </div>
                                 </td>
-                                <td>
-                                    <div className="d-flex gap-1">
-                                        <button className="action-btn btn-view" onClick={(e) => { e.stopPropagation(); handleViewStudent(s); }}><i className="bi bi-eye"></i></button>
-                                        <button className="action-btn btn-edit" onClick={(e) => { e.stopPropagation(); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
-                                        <button className="action-btn btn-delete" onClick={(e) => { e.stopPropagation(); setModal({ type: 'delete', data: { id: s.id } }); }}><i className="bi bi-trash"></i></button>
+                                {isAdmin && (
+                                    <td data-label="Assigned Staff" className="col-staff">
+                                        {s.assigned_staff_name ? (
+                                            <span className="badge badge-assigned-staff border">
+                                                <i className="bi bi-person-fill me-1"></i>
+                                                {(() => {
+                                                    if (staffList.length > 0) {
+                                                        const idx = staffList.findIndex(st => st.id === s.assigned_staff);
+                                                        // Use the name from the fresh staffList to ensure consistency
+                                                        if (idx !== -1) return `${staffList[idx].name} (#STF${String(idx + 1).padStart(3, '0')})`;
+                                                    }
+                                                    return s.assigned_staff_name;
+                                                })()}
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted small"><em>Unassigned</em></span>
+                                        )}
+                                    </td>
+                                )}
+                                <td data-label="Action" className="col-action">
+                                    <div className="d-flex gap-2">
+                                        <button className="action-btn btn-view rounded" style={{ width: '38px', height: '38px' }} onClick={(e) => { e.stopPropagation(); handleViewStudent(s); }}><i className="bi bi-eye-fill"></i></button>
+                                        <button className="action-btn btn-edit rounded" style={{ width: '38px', height: '38px' }} onClick={(e) => { e.stopPropagation(); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
+                                        <button className="action-btn btn-delete rounded" style={{ width: '38px', height: '38px' }} onClick={(e) => { e.stopPropagation(); setModal({ type: 'delete', data: { id: s.id } }); }}><i className="bi bi-trash-fill"></i></button>
                                     </div>
                                 </td>
                             </tr>

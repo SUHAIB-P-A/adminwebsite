@@ -93,3 +93,20 @@
         transform: translateY(0);
     }
 }
+
+/* Mobile tweaks */
+@media (max-width: 576px) {
+    .modal-dialog {
+        max-width: 95% !important;
+        margin: 0.5rem;
+    }
+
+    .profile-image-preview {
+        width: 80px !important;
+        height: 80px !important;
+    }
+
+    .settings-page {
+        padding: 0 1rem;
+    }
+}

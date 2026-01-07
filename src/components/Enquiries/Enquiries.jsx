@@ -13,6 +13,10 @@ const Enquiries = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const longPressTimer = useRef(null);
 
+    // Role check: hide Assigned Staff column for non-admin users
+    const role = localStorage.getItem('role');
+    const isAdmin = role === 'admin' || role === 'Admin';
+
     const [filter, setFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('Pending');
 
@@ -225,13 +229,13 @@ const Enquiries = () => {
                                 <th>Full Name</th>
                                 <th>Message Snippet</th>
                                 <th>Status</th>
-                                <th>Assigned Staff</th>
+                                {isAdmin && <th>Assigned Staff</th>}
                                 <th className="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="5" className="text-center p-4">Loading...</td></tr>
+                                <tr><td colSpan={5 - (isAdmin ? 0 : 1) + (selection.active ? 1 : 0)} className="text-center p-4">Loading...</td></tr>
                             ) : filteredEnquiries.map((enquiry) => (
                                 <tr
                                     key={enquiry.id}
@@ -243,11 +247,11 @@ const Enquiries = () => {
                                     title={selection.active ? "Select" : "Click to view details"}
                                 >
                                     {selection.active && (
-                                        <td className="text-center">
+                                        <td data-label="Select" className="text-center col-select">
                                             <input type="checkbox" checked={selection.ids.includes(enquiry.id)} readOnly className="form-check-input" />
                                         </td>
                                     )}
-                                    <td>
+                                    <td data-label="Name" className="col-name">
                                         <div className="d-flex align-items-center">
                                             <div className="avatar-initials bg-secondary text-white mr-2">
                                                 {enquiry.name.charAt(0)}
@@ -256,44 +260,48 @@ const Enquiries = () => {
                                             {!enquiry.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}
                                         </div>
                                     </td>
-                                    <td className={`${!enquiry.is_read ? "fw-bold text-dark" : "text-muted"} text-truncate`} style={{ maxWidth: '200px' }}>
-                                        {enquiry.message}
+                                    <td data-label="Message" className="col-message text-truncate" style={{ maxWidth: '200px' }}>
+                                        <span className={!enquiry.is_read ? "fw-bold text-dark" : "text-muted"}>{enquiry.message}</span>
                                     </td>
-                                    <td>
-                                        <span className={`badge ${enquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                            {enquiry.status || 'Pending'}
+                                    <td data-label="Status" className="col-status">
+                                        <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${enquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                            Status: {enquiry.status || 'Pending'}
                                         </span>
                                     </td>
-                                    <td>
-                                        {enquiry.assigned_staff_name ? (
-                                            <span className="badge badge-assigned-staff border">
-                                                <i className="bi bi-person-fill me-1"></i>
-                                                {(() => {
-                                                    if (staffList.length > 0) {
-                                                        const idx = staffList.findIndex(st => st.id === enquiry.assigned_staff);
-                                                        if (idx !== -1) return `${staffList[idx].name} (#STF${String(idx + 1).padStart(3, '0')})`;
-                                                    }
-                                                    return enquiry.assigned_staff_name;
-                                                })()}
-                                            </span>
-                                        ) : (
-                                            <span className="text-muted small"><em>Unassigned</em></span>
-                                        )}
-                                    </td>
-                                    <td className="text-end">
+                                    {isAdmin && (
+                                        <td data-label="Assigned Staff" className="col-staff">
+                                            {enquiry.assigned_staff_name ? (
+                                                <span className="badge badge-assigned-staff border">
+                                                    <i className="bi bi-person-fill me-1"></i>
+                                                    {(() => {
+                                                        if (staffList.length > 0) {
+                                                            const idx = staffList.findIndex(st => st.id === enquiry.assigned_staff);
+                                                            if (idx !== -1) return `${staffList[idx].name} (#STF${String(idx + 1).padStart(3, '0')})`;
+                                                        }
+                                                        return enquiry.assigned_staff_name;
+                                                    })()}
+                                                </span>
+                                            ) : (
+                                                <span className="text-muted small"><em>Unassigned</em></span>
+                                            )}
+                                        </td>
+                                    )}
+                                    <td data-label="Action" className="col-action text-end">
                                         <div className="d-flex justify-content-end gap-2">
                                             <button
-                                                className="action-btn btn-view"
+                                                className="action-btn btn-view rounded"
+                                                style={{ width: '38px', height: '38px' }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleView(enquiry, false);
                                                 }}
                                                 title="View"
                                             >
-                                                <i className="bi bi-eye"></i>
+                                                <i className="bi bi-eye-fill"></i>
                                             </button>
                                             <button
-                                                className="action-btn btn-edit"
+                                                className="action-btn btn-edit rounded"
+                                                style={{ width: '38px', height: '38px' }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleView(enquiry, true);
@@ -303,14 +311,15 @@ const Enquiries = () => {
                                                 <i className="bi bi-pencil-square"></i>
                                             </button>
                                             <button
-                                                className="action-btn btn-delete"
+                                                className="action-btn btn-delete rounded"
+                                                style={{ width: '38px', height: '38px' }}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     handleDelete(enquiry.id);
                                                 }}
                                                 title="Delete"
                                             >
-                                                <i className="bi bi-trash"></i>
+                                                <i className="bi bi-trash-fill"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -318,7 +327,7 @@ const Enquiries = () => {
                             ))}
                             {!loading && enquiries.length === 0 && (
                                 <tr>
-                                    <td colSpan="5" className="text-center p-4 text-muted">
+                                    <td colSpan={5 - (isAdmin ? 0 : 1) + (selection.active ? 1 : 0)} className="text-center p-4 text-muted">
                                         No enquiries found.
                                     </td>
                                 </tr>

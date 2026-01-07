@@ -330,20 +330,20 @@ const StaffManagement = () => {
                                 style={{ cursor: selection.active ? 'pointer' : 'default' }}
                             >
                                 {selection.active && (
-                                    <td className="text-center">
+                                    <td data-label="Select" className="text-center">
                                         <input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" />
                                     </td>
                                 )}
-                                <td><span className="fw-bold text-secondary">#STF{String(index + 1).padStart(3, '0')}</span></td>
-                                <td className="fw-medium">{s.name}</td>
-                                <td>{s.designation || <span className="text-muted small">N/A</span>}</td>
-                                <td><span className="badge bg-light text-dark border">{s.login_id}</span></td>
-                                <td>
+                                <td data-label="ID"><span className="fw-bold text-secondary">#STF{String(index + 1).padStart(3, '0')}</span></td>
+                                <td data-label="Name" className="fw-medium">{s.name}</td>
+                                <td data-label="Designation">{s.designation || <span className="text-muted small">N/A</span>}</td>
+                                <td data-label="Login ID"><span className="badge bg-light text-dark border">{s.login_id}</span></td>
+                                <td data-label="Status">
                                     <span className={`badge ${s.active_status ? 'bg-success' : 'bg-secondary'}`}>
                                         {s.active_status ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Current Load">
                                     <div className="d-flex align-items-center gap-2">
                                         <span className="badge bg-info text-dark rounded-pill px-3">
                                             {s.student_count} Students
@@ -351,7 +351,7 @@ const StaffManagement = () => {
                                         <button className="btn btn-sm btn-link text-info p-0" title="View Assigned Students" onClick={(e) => { e.stopPropagation(); viewStaffStudents(s.id, s.name); }}><i className="bi bi-eye"></i></button>
                                     </div>
                                 </td>
-                                <td>
+                                <td data-label="Action">
                                     <div className="d-flex gap-1">
                                         <button className="btn btn-sm btn-link text-secondary" title="View Profile" onClick={(e) => { e.stopPropagation(); viewStaffProfile(s); }}><i className="bi bi-person-lines-fill fs-5"></i></button>
                                         <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setErrors({}); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
