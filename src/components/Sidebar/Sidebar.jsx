@@ -50,15 +50,15 @@ const Sidebar = () => {
         <div className="sidebar d-flex flex-column justify-content-between">
             <div>
                 <div className="sidebar-header">
-                    <div className="sidebar-logo-area">
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', color: '#333' }}>
+                    <div className="sidebar-logo-area d-flex flex-column align-items-center text-center">
+                        <div style={{ width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', color: '#333' }}>
                             {image ? (
                                 <img src={image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <i className="bi bi-person-circle fs-4"></i>
+                                <i className="bi bi-person-circle fs-1"></i>
                             )}
                         </div>
-                        <div className="ms-3 text-white">
+                        <div className="mt-2 text-white">
                             <small className="d-block opacity-75" style={{ fontSize: '0.75rem' }}>WELCOME</small>
                             <h5 className="mb-0 fw-bold">{name}</h5>
                         </div>

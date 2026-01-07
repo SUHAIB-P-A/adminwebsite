@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import LegalModal from './LegalModal';
 import EditProfileModal from './EditProfileModal';
 import './Settings.css';
@@ -54,8 +55,12 @@ const TERMS_AND_CONDITIONS = (
     </div>
 );
 
+
+
 const Settings = () => {
-    // State for Notifications (Dummy active state for now)
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    // ... rest of state ...
     const [notifications, setNotifications] = useState({
         email: true,
         push: false,
@@ -104,7 +109,15 @@ const Settings = () => {
             email: storedEmail,
             image: storedImage
         });
-    }, []);
+
+
+        // Check for edit query param
+        if (searchParams.get('edit') === 'true') {
+            setShowEditProfile(true);
+            // Optional: clear the param so it doesn't reopen on reload
+            navigate('/portal/settings', { replace: true });
+        }
+    }, [searchParams, navigate]);
 
     const toggleNotification = (type) => {
         setNotifications(prev => ({
