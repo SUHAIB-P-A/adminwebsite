@@ -29,7 +29,10 @@ const Sidebar = () => {
     }, []);
 
     const handleLogout = () => {
-        localStorage.clear();
+        // Remove authentication/session keys but keep persisted profile snapshots so local edits survive logout
+        localStorage.removeItem('staff_id');
+        localStorage.removeItem('role');
+        // If you store auth tokens, remove them here as well (e.g., localStorage.removeItem('auth_token'))
         navigate('/');
     };
 

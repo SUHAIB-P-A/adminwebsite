@@ -6,21 +6,25 @@ const EditProfileModal = ({ show, onClose, user, onSave }) => {
         role: '',
         phone: '',
         email: '',
-        image: null
+        image: null,
+        dob: '',
+        gender: ''
     });
+    const [initialData, setInitialData] = useState(null);
     const [previewImage, setPreviewImage] = useState(null);
 
     useEffect(() => {
         if (user) {
-            setFormData({
+            const initial = {
                 name: user.name || '',
-                // role: user.role || '', // Role is not editable
                 dob: user.dob || '',
                 gender: user.gender || '',
                 phone: user.phone || '',
                 email: user.email || '',
                 image: user.image || null
-            });
+            };
+            setFormData(initial);
+            setInitialData(initial);
             setPreviewImage(user.image || null);
         }
     }, [user, show]);
@@ -50,7 +54,25 @@ const EditProfileModal = ({ show, onClose, user, onSave }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave(formData);
+        // Compute only changed fields so we don't overwrite with unchanged values
+        const updated = {};
+        if (initialData) {
+            Object.keys(formData).forEach(key => {
+                // Compare strictly; treat null and undefined consistently
+                const oldVal = initialData[key] ?? '';
+                const newVal = formData[key] ?? '';
+                if (oldVal !== newVal) {
+                    updated[key] = formData[key];
+                }
+            });
+        } else {
+            // Fallback: send everything
+            Object.assign(updated, formData);
+        }
+
+        if (Object.keys(updated).length > 0) {
+            onSave(updated);
+        }
         onClose();
     };
 

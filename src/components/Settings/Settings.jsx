@@ -126,16 +126,47 @@ const Settings = () => {
     };
 
     const handleSaveProfile = (updatedData) => {
+        // Only apply updates if there are changes
+        if (!updatedData || Object.keys(updatedData).length === 0) {
+            showToast('No changes made.');
+            return;
+        }
+
         setUser(prev => ({ ...prev, ...updatedData }));
 
-        // Save to localStorage
-        if (updatedData.name) localStorage.setItem('staff_name', updatedData.name);
-        if (updatedData.role) localStorage.setItem('role', updatedData.role);
-        if (updatedData.dob) localStorage.setItem('staff_dob', updatedData.dob);
-        if (updatedData.gender) localStorage.setItem('staff_gender', updatedData.gender);
-        if (updatedData.phone) localStorage.setItem('staff_phone', updatedData.phone);
-        if (updatedData.email) localStorage.setItem('staff_email', updatedData.email);
-        if (updatedData.image) localStorage.setItem('staff_image', updatedData.image);
+        // Save to localStorage for keys that are provided (including empty values)
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'name')) localStorage.setItem('staff_name', updatedData.name);
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'role')) localStorage.setItem('role', updatedData.role);
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'dob')) localStorage.setItem('staff_dob', updatedData.dob);
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'gender')) localStorage.setItem('staff_gender', updatedData.gender);
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'phone')) localStorage.setItem('staff_phone', updatedData.phone);
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'email')) localStorage.setItem('staff_email', updatedData.email);
+
+        if (Object.prototype.hasOwnProperty.call(updatedData, 'image')) {
+            if (updatedData.image) {
+                localStorage.setItem('staff_image', updatedData.image);
+            } else {
+                // If explicitly set to null/empty, remove the stored image
+                localStorage.removeItem('staff_image');
+            }
+        }
+
+        // Also persist a full profile snapshot keyed by staff_id so it survives logout/login
+        const staffId = localStorage.getItem('staff_id') || 'local';
+        const profileToSave = {
+            name: Object.prototype.hasOwnProperty.call(updatedData, 'name') ? updatedData.name : (localStorage.getItem('staff_name') || user.name || ''),
+            dob: Object.prototype.hasOwnProperty.call(updatedData, 'dob') ? updatedData.dob : (localStorage.getItem('staff_dob') || user.dob || ''),
+            gender: Object.prototype.hasOwnProperty.call(updatedData, 'gender') ? updatedData.gender : (localStorage.getItem('staff_gender') || user.gender || ''),
+            phone: Object.prototype.hasOwnProperty.call(updatedData, 'phone') ? updatedData.phone : (localStorage.getItem('staff_phone') || user.phone || ''),
+            email: Object.prototype.hasOwnProperty.call(updatedData, 'email') ? updatedData.email : (localStorage.getItem('staff_email') || user.email || ''),
+            image: Object.prototype.hasOwnProperty.call(updatedData, 'image') ? (updatedData.image || null) : (localStorage.getItem('staff_image') || user.image || null)
+        };
+        try {
+            localStorage.setItem(`staff_profile_${staffId}`, JSON.stringify(profileToSave));
+        } catch (e) {
+            // ignore storage errors
+            console.warn('Failed to save profile snapshot', e);
+        }
 
         // Notify other components (like Sidebar) about the update
         window.dispatchEvent(new Event('userInfoUpdated'));
