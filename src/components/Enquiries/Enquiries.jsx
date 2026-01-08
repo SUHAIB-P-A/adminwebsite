@@ -226,6 +226,7 @@ const Enquiries = () => {
                                         />
                                     </th>
                                 )}
+                                <th style={{ width: '5%' }}>#ID</th>
                                 <th>Full Name</th>
                                 <th>Message Snippet</th>
                                 <th>Status</th>
@@ -235,8 +236,8 @@ const Enquiries = () => {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={5 - (isAdmin ? 0 : 1) + (selection.active ? 1 : 0)} className="text-center p-4">Loading...</td></tr>
-                            ) : filteredEnquiries.map((enquiry) => (
+                                <tr><td colSpan={6 - (isAdmin ? 0 : 1) + (selection.active ? 1 : 0)} className="text-center p-4">Loading...</td></tr>
+                            ) : filteredEnquiries.map((enquiry, index) => (
                                 <tr
                                     key={enquiry.id}
                                     onMouseDown={() => handleLongPress(enquiry.id)}
@@ -251,6 +252,7 @@ const Enquiries = () => {
                                             <input type="checkbox" checked={selection.ids.includes(enquiry.id)} readOnly className="form-check-input" />
                                         </td>
                                     )}
+                                    <td data-label="ID" className="fw-bold text-secondary col-id">{index + 1}</td>
                                     <td data-label="Name" className="col-name">
                                         <div className="d-flex align-items-center">
                                             <div className="avatar-initials bg-secondary text-white mr-2">
