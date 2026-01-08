@@ -672,7 +672,6 @@ const StaffManagement = () => {
                                                                             <td className="px-3 fw-bold text-secondary">{i + 1}</td>
                                                                             <td>
                                                                                 <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
-                                                                                <div className="small text-muted">{st.email}</div>
                                                                             </td>
                                                                             <td>
                                                                                 <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
@@ -735,7 +734,6 @@ const StaffManagement = () => {
                                                                         <td className="px-3 fw-bold text-secondary">{i + 1}</td>
                                                                         <td>
                                                                             <div className="fw-medium">{enq.name} {!enq.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
-                                                                            <div className="small text-muted">{enq.email}</div>
                                                                         </td>
                                                                         <td title={enq.message} className="text-truncate" style={{ maxWidth: '200px' }}>{enq.message || '-'}</td>
                                                                         <td>

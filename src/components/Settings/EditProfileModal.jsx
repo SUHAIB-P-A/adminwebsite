@@ -48,6 +48,13 @@ const EditProfileModal = ({ show, onClose, user, onSave }) => {
         const file = e.target.files[0];
         setError('');
         if (file) {
+            // Strict 2MB Limit Check
+            if (file.size > 2 * 1024 * 1024) {
+                setError("Image size exceeds 2MB. Please select a smaller file.");
+                e.target.value = '';
+                return;
+            }
+
             // If file is > 5MB, maybe reject outright as too huge, or try to compress.
             // Let's try to compress any image to ensure it's web-optimized.
 

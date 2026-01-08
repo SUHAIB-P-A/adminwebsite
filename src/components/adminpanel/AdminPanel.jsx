@@ -141,7 +141,7 @@ const AdminPanel = () => {
                                         <button
                                             className="btn btn-outline-primary btn-sm rounded-pill"
                                             onClick={() => {
-                                                navigate('/portal/settings?edit=true');
+                                                navigate('/portal/settings/profile/edit');
                                                 setShowAccountCard(false);
                                             }}
                                         >

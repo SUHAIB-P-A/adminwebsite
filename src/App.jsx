@@ -6,6 +6,8 @@ import Login from './components/Login/Login';
 import StaffManagement from './components/StaffManagement/StaffManagement';
 import Home from './components/Home/Home';
 import Settings from './components/Settings/Settings';
+import SettingsOverview from './components/Settings/SettingsOverview';
+import EditProfilePage from './components/Settings/EditProfilePage';
 import './App.css';
 
 // Protected Route Component
@@ -53,7 +55,12 @@ function App() {
             } />
 
             <Route path="dashboard" element={<div className="p-4"><h2>Dashboard (Coming Soon)</h2></div>} />
-            <Route path="settings" element={<Settings />} />
+
+            {/* Settings Sub-Routes */}
+            <Route path="settings" element={<Settings />}>
+              <Route index element={<SettingsOverview />} />
+              <Route path="profile/edit" element={<EditProfilePage />} />
+            </Route>
           </Route>
 
           {/* Fallback */}

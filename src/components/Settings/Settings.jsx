@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, Outlet } from 'react-router-dom';
 import LegalModal from './LegalModal';
-import EditProfileModal from './EditProfileModal';
 import './Settings.css';
 
 const PRIVACY_POLICY = (
@@ -55,12 +54,11 @@ const TERMS_AND_CONDITIONS = (
     </div>
 );
 
-
-
 const Settings = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    // ... rest of state ...
+
+    // Notifications State
     const [notifications, setNotifications] = useState({
         email: true,
         push: false,
@@ -88,7 +86,6 @@ const Settings = () => {
 
     // Modal States
     const [legalModal, setLegalModal] = useState({ show: false, title: '', content: null });
-    const [showEditProfile, setShowEditProfile] = useState(false);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -120,7 +117,7 @@ const Settings = () => {
                         dob: data.dob || '',
                         gender: data.gender || '',
                         image: data.profile_image || null,
-                        role: data.role || prev.role // Assuming role might come from backend too
+                        role: data.role || prev.role
                     }));
 
                     // Update snapshot
@@ -137,7 +134,6 @@ const Settings = () => {
 
                 } catch (error) {
                     console.error("Failed to fetch user profile", error);
-                    // Fallback to local storage is already handled by initial state or below logic if we want
                 }
             }
         };
@@ -149,7 +145,7 @@ const Settings = () => {
         const storedGender = localStorage.getItem('staff_gender') || '';
         const storedPhone = localStorage.getItem('staff_phone') || '';
         const storedEmail = localStorage.getItem('staff_email') || '';
-        const storedImage = localStorage.getItem('staff_image'); // Base64 image
+        const storedImage = localStorage.getItem('staff_image');
 
         setUser({
             name: storedName,
@@ -161,14 +157,11 @@ const Settings = () => {
             image: storedImage
         });
 
-        // specific check: if we just logged in or reloaded, fetch fresh data
         fetchUserProfile();
 
-        // Check for edit query param
+        // Check for edit query param - Legacy Support redirection
         if (searchParams.get('edit') === 'true') {
-            setShowEditProfile(true);
-            // Optional: clear the param so it doesn't reopen on reload
-            navigate('/portal/settings', { replace: true });
+            navigate('/portal/settings/profile/edit', { replace: true });
         }
     }, [searchParams, navigate]);
 
@@ -204,7 +197,6 @@ const Settings = () => {
         if (isBootstrapAdmin) {
             // Warn user if they are using the temporary bootstrap admin account
             alert("Warning: You are logged in as the temporary Bootstrap Admin (no database record). Changes will be local-only and lost upon logout. Please create a real Admin account for persistent storage.");
-            // We allow proceeding to update local state for the session, but it won't persist.
         }
 
         if (staffId && staffId !== 'local') {
@@ -218,22 +210,19 @@ const Settings = () => {
                 if (updatedData.gender !== undefined) apiPayload.gender = updatedData.gender;
                 if (updatedData.image !== undefined) apiPayload.profile_image = updatedData.image;
 
-                // Send partial update
                 await axios.put(`/api/staff/${staffId}/`, apiPayload);
-
-                // Only if backend success, proceed to update local state
 
             } catch (err) {
                 console.error("Backend save failed", err);
                 const errorMsg = err.response?.data?.error || err.response?.data?.detail || 'Failed to save to server.';
                 showToast(errorMsg, 'danger');
-                return; // STOP here. Do not update local UI if backend failed.
+                return;
             }
         }
 
         setUser(prev => ({ ...prev, ...updatedData }));
 
-        // Save to localStorage for keys that are provided (including empty values)
+        // Save to localStorage 
         if (Object.prototype.hasOwnProperty.call(updatedData, 'name')) localStorage.setItem('staff_name', updatedData.name);
         if (Object.prototype.hasOwnProperty.call(updatedData, 'role')) localStorage.setItem('role', updatedData.role);
         if (Object.prototype.hasOwnProperty.call(updatedData, 'dob')) localStorage.setItem('staff_dob', updatedData.dob);
@@ -250,7 +239,6 @@ const Settings = () => {
                     showToast('Profile image too large to cache locally, but saved to server.', 'warning');
                 }
             } else {
-                // If explicitly set to null/empty, remove the stored image
                 localStorage.removeItem('staff_image');
             }
         }
@@ -268,7 +256,6 @@ const Settings = () => {
         try {
             localStorage.setItem(`staff_profile_${sId}`, JSON.stringify(profileToSave));
         } catch (e) {
-            // ignore storage errors
             console.warn('Failed to save profile snapshot', e);
         }
 
@@ -279,115 +266,14 @@ const Settings = () => {
     };
 
     return (
-        <div className="settings-page fade-in">
-            <h2 className="settings-title mb-4">Settings</h2>
-
-            {/* 1. Account Section */}
-            <section className="settings-section">
-                <h4 className="section-title"><i className="bi bi-person-circle me-2"></i> Account</h4>
-                <div className="card settings-card account-card">
-                    <div className="card-body d-flex align-items-center">
-                        <div className="account-avatar">
-                            {user.image ? (
-                                <img src={user.image} alt="Profile" className="rounded-circle" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                                <i className="bi bi-person-fill"></i>
-                            )}
-                        </div>
-                        <div className="account-info ms-3">
-                            <h5 className="mb-1">{user.name}</h5>
-                            <p className="mb-0 text-muted role-badge">{user.role}</p>
-                            {(user.email || user.phone) && (
-                                <small className="d-block text-muted mt-1">
-                                    {user.email && <span><i className="bi bi-envelope me-1"></i>{user.email}</span>}
-                                    {user.email && user.phone && <span className="mx-2">|</span>}
-                                    {user.phone && <span><i className="bi bi-telephone me-1"></i>{user.phone}</span>}
-                                </small>
-                            )}
-                        </div>
-                        <button
-                            className="btn btn-outline-primary ms-auto btn-sm"
-                            onClick={() => setShowEditProfile(true)}
-                        >
-                            Edit Profile
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            {/* 2. Notifications Section */}
-            <section className="settings-section mt-4">
-                <h4 className="section-title"><i className="bi bi-bell me-2"></i> Notifications</h4>
-                <div className="card settings-card">
-                    <div className="card-body">
-                        <div className="setting-item d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 className="mb-0">Email Notifications</h6>
-                                <small className="text-muted">Receive updates via email</small>
-                            </div>
-                            <div className="form-check form-switch">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={notifications.email}
-                                    onChange={() => toggleNotification('email')}
-                                />
-                            </div>
-                        </div>
-                        <div className="setting-item d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 className="mb-0">Push Notifications</h6>
-                                <small className="text-muted">Receive pop-up notifications</small>
-                            </div>
-                            <div className="form-check form-switch">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={notifications.push}
-                                    onChange={() => toggleNotification('push')}
-                                />
-                            </div>
-                        </div>
-                        <div className="setting-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 className="mb-0">SMS Notifications</h6>
-                                <small className="text-muted">Receive urgent updates via SMS</small>
-                            </div>
-                            <div className="form-check form-switch">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={notifications.sms}
-                                    onChange={() => toggleNotification('sms')}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 3. Legal Section */}
-            <section className="settings-section mt-4 mb-5">
-                <h4 className="section-title"><i className="bi bi-shield-check me-2"></i> Legal</h4>
-                <div className="card settings-card">
-                    <div className="list-group list-group-flush">
-                        <button
-                            className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                            onClick={() => openLegalModal('privacy')}
-                        >
-                            Privacy Policy
-                            <i className="bi bi-chevron-right"></i>
-                        </button>
-                        <button
-                            className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                            onClick={() => openLegalModal('terms')}
-                        >
-                            Terms and Conditions
-                            <i className="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </section>
+        <div className="settings-page">
+            <Outlet context={{
+                user,
+                notifications,
+                toggleNotification,
+                openLegalModal,
+                handleSaveProfile
+            }} />
 
             {/* Legal Modal */}
             <LegalModal
@@ -397,13 +283,6 @@ const Settings = () => {
                 content={legalModal.content}
             />
 
-            {/* Edit Profile Modal */}
-            <EditProfileModal
-                show={showEditProfile}
-                onClose={() => setShowEditProfile(false)}
-                user={user}
-                onSave={handleSaveProfile}
-            />
             {/* Simple Toast */}
             {toast.show && (
                 <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1100 }}>
