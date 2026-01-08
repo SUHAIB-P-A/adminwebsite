@@ -108,24 +108,26 @@ const StaffManagement = () => {
     };
 
 
-    const handleDelete = async (id = null) => {
+    const handleDelete = (id = null) => {
         const isBulk = id === 'bulk';
         const count = isBulk ? selection.ids.length : 1;
+        setModal({ type: 'delete_confirm', data: { id, count, isBulk } });
+    };
 
-        if (!window.confirm(`Are you sure you want to delete ${count} staff member(s)? This will redistribute their assigned students.`)) return;
-
+    const confirmDelete = async () => {
+        const { id, isBulk } = modal.data;
         try {
             if (isBulk) {
                 await Promise.all(selection.ids.map(staffId => axios.delete(`/api/staff/${staffId}/`)));
-                showToast("Selected staff deleted and workload redistributed");
                 setSelection({ active: false, ids: [] });
             } else {
                 await axios.delete(`/api/staff/${id}/`);
-                showToast("Staff deleted and workload redistributed");
             }
+            setModal({ type: 'success', data: { message: "Staff deleted and workload redistributed successfully." } });
             fetchStaff();
         } catch (err) {
             showToast("Delete failed", "danger");
+            setModal({ type: null });
         }
     };
 
@@ -800,6 +802,33 @@ const StaffManagement = () => {
                     </div>
                 )
             }
+
+            {/* Delete Confirmation Modal */}
+            {modal.type === 'delete_confirm' && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="modal-body p-4 text-center">
+                                <div className="mb-3">
+                                    <div className="mx-auto bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center rounded-circle" style={{ width: '60px', height: '60px' }}>
+                                        <i className="bi bi-exclamation-triangle" style={{ fontSize: '2rem' }}></i>
+                                    </div>
+                                </div>
+                                <h5 className="fw-bold mb-2">Delete Confirmation</h5>
+                                <p className="text-muted mb-4">
+                                    Are you sure you want to delete {modal.data.count > 1 ? `${modal.data.count} staff members` : 'this staff member'}?
+                                    <br />
+                                    <span className="small text-danger fw-bold">This action will redistribute assigned students and cannot be undone.</span>
+                                </p>
+                                <div className="d-flex gap-2 justify-content-center">
+                                    <button className="btn btn-light rounded-pill px-4" onClick={() => setModal({ type: null })}>Cancel</button>
+                                    <button className="btn btn-danger rounded-pill px-4" onClick={confirmDelete}>Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Student Action Modals - Nested */}
             {

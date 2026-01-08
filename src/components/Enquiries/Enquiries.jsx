@@ -211,10 +211,10 @@ const Enquiries = () => {
                 </div>
             </div>
 
-            <div className="custom-card">
-                <div className="table-responsive">
-                    <table className="custom-table table-hover">
-                        <thead>
+            <div className="custom-card p-0 bg-white rounded shadow-sm overflow-hidden">
+                <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                    <table className="custom-table table-hover mb-0">
+                        <thead className="bg-light">
                             <tr>
                                 {selection.active && (
                                     <th className="px-2 text-center" style={{ width: '5%' }}>
@@ -277,7 +277,6 @@ const Enquiries = () => {
                                         <td data-label="Assigned Staff" className="col-staff">
                                             {enquiry.assigned_staff_name ? (
                                                 <span className="badge badge-assigned-staff border">
-                                                    <i className="bi bi-person-fill me-1"></i>
                                                     {(() => {
                                                         if (staffList.length > 0) {
                                                             const idx = staffList.findIndex(st => st.id === enquiry.assigned_staff);

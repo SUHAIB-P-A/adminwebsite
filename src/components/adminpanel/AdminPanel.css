@@ -139,6 +139,14 @@ body {
   padding: 1rem;
   border-bottom: 2px solid #dee2e6;
   text-align: left;
+  /* Sticky Header Fix */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  /* Higher z-index */
+  background-color: #f8f9fa;
+  /* Explicit solid background (Bootstrap light gray) */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .custom-table tbody td {
@@ -344,13 +352,16 @@ body {
   .custom-table tbody tr.table-unread {
     background-color: #fff8e6;
   }
+
   .custom-table tbody tr.table-unread:hover {
     background-color: #fff3d6;
   }
+
   .custom-table tbody tr.table-unread .col-name,
   .custom-table tbody tr.table-unread .col-status,
   .custom-table tbody tr.table-unread .col-message {
-    color: #5a3e00; /* slightly darker for contrast */
+    color: #5a3e00;
+    /* slightly darker for contrast */
   }
 
   .custom-table tbody td {
