@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../Sidebar/Sidebar';
 import './AdminPanel.css';
+import axios from 'axios';
 
 const AdminPanel = () => {
     const navigate = useNavigate();
@@ -12,14 +13,35 @@ const AdminPanel = () => {
     });
 
     useEffect(() => {
-        const loadUserInfo = () => {
-            setUser({
+        const loadUserInfo = async () => {
+            // 1. Initial Load from Local Storage (Fast)
+            const localUser = {
                 name: localStorage.getItem('staff_name') || 'User',
                 role: localStorage.getItem('role') || 'Staff',
                 image: localStorage.getItem('staff_image'),
                 email: localStorage.getItem('staff_email') || '',
                 phone: localStorage.getItem('staff_phone') || ''
-            });
+            };
+            setUser(prev => ({ ...prev, ...localUser }));
+
+            // 2. Background Fetch for Fresh Data (Reliable for large images not in LS)
+            const staffId = localStorage.getItem('staff_id');
+            if (staffId && staffId !== 'local') {
+                try {
+                    const response = await axios.get(`/api/staff/${staffId}/`);
+                    const data = response.data;
+                    setUser(prev => ({
+                        ...prev,
+                        name: data.name || prev.name,
+                        role: data.role || prev.role, // Ensure role is synced
+                        email: data.email || prev.email,
+                        phone: data.phone || prev.phone,
+                        image: data.profile_image || prev.image // This fixes the missing image issue!
+                    }));
+                } catch (error) {
+                    console.error("Failed to fetch background user info", error);
+                }
+            }
         };
 
         loadUserInfo();
@@ -49,7 +71,7 @@ const AdminPanel = () => {
             {/* Backdrop for mobile */}
             {isSidebarOpen && <div className="sidebar-backdrop d-md-none" onClick={closeSidebar}></div>}
 
-            <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} />
+            <Sidebar isOpen={isSidebarOpen} closeSidebar={closeSidebar} user={user} />
 
             <main className="main-content">
                 {/* Top header */}

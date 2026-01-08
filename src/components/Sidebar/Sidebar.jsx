@@ -2,31 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import '../adminpanel/AdminPanel.css';
 
-const Sidebar = ({ isOpen, closeSidebar }) => {
+const Sidebar = ({ isOpen, closeSidebar, user }) => {
     const navigate = useNavigate();
-    const [role, setRole] = useState('');
-    const [name, setName] = useState('');
-    const [image, setImage] = useState(null);
 
-    useEffect(() => {
-        const loadUserInfo = () => {
-            setRole(localStorage.getItem('role') || 'staff');
-            setName(localStorage.getItem('staff_name') || 'User');
-            setImage(localStorage.getItem('staff_image'));
-        };
-
-        loadUserInfo();
-
-        const handleUserInfoUpdate = () => {
-            loadUserInfo();
-        };
-
-        window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
-
-        return () => {
-            window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
-        };
-    }, []);
+    // User details from props (passed from AdminPanel -> fetched from API)
+    // We provide fallbacks just in case, but props should be the source of truth.
+    const { name, role, image } = user || {};
 
     const handleLogout = () => {
         localStorage.removeItem('staff_id');
