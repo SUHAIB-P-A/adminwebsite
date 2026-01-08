@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../Sidebar/Sidebar';
 import './AdminPanel.css';
@@ -11,6 +11,21 @@ const AdminPanel = () => {
     const [user, setUser] = useState({
         name: '', role: '', image: null, email: '', phone: ''
     });
+    const accountRef = useRef(null);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (accountRef.current && !accountRef.current.contains(event.target)) {
+                setShowAccountCard(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     useEffect(() => {
         const loadUserInfo = async () => {
@@ -86,7 +101,7 @@ const AdminPanel = () => {
                         <button className="btn btn-light rounded-circle shadow-sm"><i className="bi bi-chat"></i></button>
                         <button className="btn btn-light rounded-circle shadow-sm"><i className="bi bi-bell"></i></button>
 
-                        <div className="position-relative">
+                        <div className="position-relative" ref={accountRef}>
                             <button
                                 className={`btn ${showAccountCard ? 'btn-primary' : 'btn-light'} rounded-circle shadow-sm`}
                                 onClick={toggleAccountCard}

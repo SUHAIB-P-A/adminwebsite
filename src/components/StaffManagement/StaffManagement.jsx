@@ -585,7 +585,11 @@ const StaffManagement = () => {
                                                 <li className="nav-item">
                                                     <button
                                                         className={`nav-link rounded-pill ${modal.data.activeTab === 'students' ? 'active' : ''}`}
-                                                        onClick={() => setModal(prev => ({ ...prev, data: { ...prev.data, activeTab: 'students' } }))}
+                                                        onClick={() => {
+                                                            setModal(prev => ({ ...prev, data: { ...prev.data, activeTab: 'students' } }));
+                                                            setStudentFilter('all');
+                                                            setStudentStatusFilter('Pending');
+                                                        }}
                                                     >
                                                         Students ({modal.data.students.length})
                                                     </button>
@@ -593,7 +597,11 @@ const StaffManagement = () => {
                                                 <li className="nav-item">
                                                     <button
                                                         className={`nav-link rounded-pill ${modal.data.activeTab === 'enquiries' ? 'active' : ''}`}
-                                                        onClick={() => setModal(prev => ({ ...prev, data: { ...prev.data, activeTab: 'enquiries' } }))}
+                                                        onClick={() => {
+                                                            setModal(prev => ({ ...prev, data: { ...prev.data, activeTab: 'enquiries' } }));
+                                                            setStudentFilter('all');
+                                                            setStudentStatusFilter('Pending');
+                                                        }}
                                                     >
                                                         Enquiries ({modal.data.enquiries.length})
                                                     </button>
