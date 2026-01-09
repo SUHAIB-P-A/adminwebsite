@@ -8,6 +8,7 @@ import Home from './components/Home/Home';
 import Settings from './components/Settings/Settings';
 import SettingsOverview from './components/Settings/SettingsOverview';
 import EditProfilePage from './components/Settings/EditProfilePage';
+import Notification from './components/Notification/Notification';
 import './App.css';
 
 // Protected Route Component
@@ -53,6 +54,8 @@ function App() {
                 <StaffManagement />
               </AdminRoute>
             } />
+
+            <Route path="notifications" element={<Notification />} />
 
             <Route path="dashboard" element={<div className="p-4"><h2>Dashboard (Coming Soon)</h2></div>} />
 
