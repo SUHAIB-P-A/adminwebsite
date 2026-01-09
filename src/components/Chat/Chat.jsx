@@ -9,6 +9,19 @@ const Chat = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loadingUsers, setLoadingUsers] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
+
+    // Message Selection State
+    const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
+    const [selectedMessageIds, setSelectedMessageIds] = useState(new Set());
+    const [longPressTimer, setLongPressTimer] = useState(null);
+
+    // User/Conversation Selection State
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedChatIds, setSelectedChatIds] = useState(new Set());
+
+    // Prevents onClick from firing immediately after long press
+    const longPressTriggered = useRef(false);
+
     const scrollRef = useRef();
 
     const currentUserId = localStorage.getItem('staff_id'); // We need this to differentiate sent/received styles
@@ -92,6 +105,124 @@ const Chat = () => {
         if (!silent) setLoadingMessages(false);
     };
 
+    // Message Handlers
+    const handleMessageLongPress = (msg) => {
+        const timer = setTimeout(() => {
+            longPressTriggered.current = true;
+            setIsMessageSelectionMode(true);
+            toggleMessageSelection(msg.id);
+        }, 500);
+        setLongPressTimer(timer);
+    };
+
+    const toggleMessageSelection = (msgId) => {
+        setSelectedMessageIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(msgId)) {
+                newSet.delete(msgId);
+                if (newSet.size === 0) setIsMessageSelectionMode(false);
+            } else {
+                newSet.add(msgId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleMessageClick = (msg) => {
+        if (longPressTriggered.current) {
+            longPressTriggered.current = false;
+            return;
+        }
+        if (isMessageSelectionMode) {
+            toggleMessageSelection(msg.id);
+        }
+    };
+
+    const handleDeleteSelectedMessages = async () => {
+        if (!window.confirm(`Delete ${selectedMessageIds.size} message(s)?`)) return;
+
+        const idsToDelete = Array.from(selectedMessageIds);
+
+        // Optimistic UI
+        setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)));
+        setIsMessageSelectionMode(false);
+        setSelectedMessageIds(new Set());
+
+        try {
+            await axios.post('/api/chat/delete_messages/', { message_ids: idsToDelete });
+            fetchUsers(true);
+        } catch (err) {
+            console.error("Failed to delete messages", err);
+            fetchMessages(selectedUser.id, true); // Revert
+        }
+    };
+
+    // User Selection Handlers
+    const handleLongPress = (user) => {
+        const timer = setTimeout(() => {
+            longPressTriggered.current = true;
+            setIsSelectionMode(true);
+            toggleSelection(user.id);
+        }, 500);
+        setLongPressTimer(timer);
+    };
+
+    const cancelLongPress = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+        }
+    };
+
+    const toggleSelection = (userId) => {
+        setSelectedChatIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(userId)) {
+                newSet.delete(userId);
+                if (newSet.size === 0) setIsSelectionMode(false);
+            } else {
+                newSet.add(userId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleUserClick = (user) => {
+        if (longPressTriggered.current) {
+            longPressTriggered.current = false;
+            return;
+        }
+        if (isSelectionMode) {
+            toggleSelection(user.id);
+        } else {
+            setSelectedUser(user);
+        }
+    };
+
+    const handleDeleteSelectedChats = async () => {
+        if (!window.confirm(`Delete ${selectedChatIds.size} conversation(s)? This will delete all messages.`)) return;
+
+        const idsToDelete = Array.from(selectedChatIds);
+
+        try {
+            await Promise.all(idsToDelete.map(id => axios.post('/api/chat/delete_conversation/', {
+                user_id: currentUserId,
+                target_user_id: id
+            })));
+
+            setIsSelectionMode(false);
+            setSelectedChatIds(new Set());
+            if (selectedUser && idsToDelete.includes(selectedUser.id)) {
+                setMessages([]);
+                setSelectedUser(null);
+            }
+            fetchUsers();
+        } catch (err) {
+            console.error("Failed to delete conversations", err);
+            alert("Failed to delete some conversations.");
+        }
+    };
+
     const handleSendMessage = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedUser) return;
@@ -139,8 +270,22 @@ const Chat = () => {
                 <div className="row g-0 h-100">
                     {/* User List Sidebar */}
                     <div className="col-md-4 col-lg-3 border-end bg-light d-flex flex-column h-100">
-                        <div className="p-3 border-bottom bg-white">
-                            <input type="text" className="form-control rounded-pill" placeholder="Search people..." />
+                        <div className="p-3 border-bottom bg-white d-flex align-items-center" style={{ minHeight: '70px' }}>
+                            {isSelectionMode ? (
+                                <div className="d-flex align-items-center w-100 justify-content-between anime-fade-in">
+                                    <div className="d-flex align-items-center">
+                                        <button className="btn btn-link text-dark p-0 me-3" onClick={() => { setIsSelectionMode(false); setSelectedChatIds(new Set()); }}>
+                                            <i className="bi bi-x-lg"></i>
+                                        </button>
+                                        <span className="fw-bold">{selectedChatIds.size} Selected</span>
+                                    </div>
+                                    <button className="btn btn-danger btn-sm rounded-pill" onClick={handleDeleteSelectedChats}>
+                                        <i className="bi bi-trash-fill"></i>
+                                    </button>
+                                </div>
+                            ) : (
+                                <input type="text" className="form-control rounded-pill" placeholder="Search people..." />
+                            )}
                         </div>
                         <div className="flex-grow-1 overflow-auto custom-scrollbar">
                             {loadingUsers ? (
@@ -150,21 +295,31 @@ const Chat = () => {
                             ) : (
                                 <div className="list-group list-group-flush">
                                     {users.map(u => (
-                                        <button
+                                        <div
                                             key={u.id}
-                                            className={`list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center ${selectedUser?.id === u.id ? 'active bg-primary-subtle text-primary fw-bold' : ''}`}
-                                            onClick={() => setSelectedUser(u)}
+                                            className={`list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center user-select-none ${selectedUser?.id === u.id && !isSelectionMode ? 'active bg-primary-subtle text-primary fw-bold' : ''} ${selectedChatIds.has(u.id) ? 'bg-primary-subtle' : ''}`}
+                                            onClick={() => handleUserClick(u)}
+                                            onMouseDown={() => handleLongPress(u)}
+                                            onMouseUp={cancelLongPress}
+                                            onMouseLeave={() => { cancelLongPress(); longPressTriggered.current = false; }}
+                                            onTouchStart={() => handleLongPress(u)}
+                                            onTouchEnd={cancelLongPress}
+                                            style={{ cursor: 'pointer', transition: 'background-color 0.2s' }}
                                         >
                                             <div className="position-relative me-3">
+                                                {isSelectionMode && (
+                                                    <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-50 rounded-circle anime-zoom-in" style={{ zIndex: 10 }}>
+                                                        {selectedChatIds.has(u.id) && <i className="bi bi-check-lg text-white fs-4"></i>}
+                                                    </div>
+                                                )}
                                                 <div className="rounded-circle d-flex align-items-center justify-content-center bg-secondary-subtle text-secondary fw-bold" style={{ width: '40px', height: '40px', overflow: 'hidden' }}>
                                                     {u.profile_image ? <img src={u.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.name.charAt(0)}
                                                 </div>
-                                                {/* Online status indicator could go here */}
                                             </div>
                                             <div className="flex-grow-1 text-truncate">
                                                 <div className="d-flex justify-content-between align-items-center mb-0">
                                                     <div className="text-truncate fw-bold">{u.name}</div>
-                                                    {u.unread_count > 0 && (
+                                                    {!isSelectionMode && u.unread_count > 0 && (
                                                         <span className="badge rounded-circle bg-success d-flex align-items-center justify-content-center" style={{ width: '20px', height: '20px', fontSize: '0.7rem' }}>
                                                             {u.unread_count}
                                                         </span>
@@ -172,7 +327,7 @@ const Chat = () => {
                                                 </div>
                                                 <div className="d-flex justify-content-between align-items-center small">
                                                     <div className="text-truncate opacity-75 fw-normal">{u.role}</div>
-                                                    {u.last_message_time && (
+                                                    {!isSelectionMode && u.last_message_time && (
                                                         <div className="text-muted" style={{ fontSize: '0.7rem' }}>
                                                             {new Date(u.last_message_time).toLocaleDateString() === new Date().toLocaleDateString()
                                                                 ? new Date(u.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -181,7 +336,7 @@ const Chat = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                        </button>
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -193,14 +348,27 @@ const Chat = () => {
                         {selectedUser ? (
                             <>
                                 {/* Chat Header */}
-                                <div className="p-3 border-bottom d-flex align-items-center bg-white">
-                                    <div className="rounded-circle d-flex align-items-center justify-content-center bg-light text-primary me-3 fw-bold" style={{ width: '40px', height: '40px', overflow: 'hidden' }}>
-                                        {selectedUser.profile_image ? <img src={selectedUser.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : selectedUser.name.charAt(0)}
+                                <div className="p-3 border-bottom d-flex align-items-center bg-white justify-content-between">
+                                    <div className="d-flex align-items-center">
+                                        <div className="rounded-circle d-flex align-items-center justify-content-center bg-light text-primary me-3 fw-bold" style={{ width: '40px', height: '40px', overflow: 'hidden' }}>
+                                            {selectedUser.profile_image ? <img src={selectedUser.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : selectedUser.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h6 className="mb-0 fw-bold">{selectedUser.name}</h6>
+                                            <div className="small text-muted">{selectedUser.role}</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h6 className="mb-0 fw-bold">{selectedUser.name}</h6>
-                                        <div className="small text-muted">{selectedUser.role}</div>
-                                    </div>
+                                    {isMessageSelectionMode && (
+                                        <div className="d-flex align-items-center anime-fade-in">
+                                            <span className="me-3 fw-bold">{selectedMessageIds.size} Selected</span>
+                                            <button className="btn btn-danger btn-sm rounded-pill me-2" onClick={handleDeleteSelectedMessages}>
+                                                <i className="bi bi-trash-fill"></i>
+                                            </button>
+                                            <button className="btn btn-secondary btn-sm rounded-pill" onClick={() => { setIsMessageSelectionMode(false); setSelectedMessageIds(new Set()); }}>
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Messages */}
@@ -216,12 +384,34 @@ const Chat = () => {
                                         <div className="d-flex flex-column gap-3">
                                             {messages.map((msg, index) => {
                                                 const isMine = parseInt(msg.sender) === parseInt(currentUserId);
+                                                const isSelected = selectedMessageIds.has(msg.id);
                                                 return (
-                                                    <div key={index} className={`d-flex ${isMine ? 'justify-content-end' : 'justify-content-start'}`}>
+                                                    <div
+                                                        key={index}
+                                                        className={`d-flex ${isMine ? 'justify-content-end' : 'justify-content-start'} ${isMessageSelectionMode ? 'cursor-pointer' : ''}`}
+                                                        onClick={() => handleMessageClick(msg)}
+                                                        onMouseDown={() => handleMessageLongPress(msg)}
+                                                        onMouseUp={cancelLongPress}
+                                                        onMouseLeave={() => { cancelLongPress(); longPressTriggered.current = false; }}
+                                                        onTouchStart={() => handleMessageLongPress(msg)}
+                                                        onTouchEnd={cancelLongPress}
+                                                    >
                                                         <div
-                                                            className={`p-3 rounded-4 shadow-sm border ${isMine ? 'bg-primary text-white rounded-br-0' : 'bg-white text-dark rounded-bl-0'}`}
-                                                            style={{ maxWidth: '70%', borderRadius: '1rem', borderBottomRightRadius: isMine ? '0' : '1rem', borderBottomLeftRadius: isMine ? '1rem' : '0' }}
+                                                            className={`p-3 rounded-4 shadow-sm border position-relative ${isMine ? 'bg-primary text-white rounded-br-0' : 'bg-white text-dark rounded-bl-0'} ${isSelected ? 'opacity-75 ring-2 ring-primary' : ''}`}
+                                                            style={{
+                                                                maxWidth: '70%',
+                                                                borderRadius: '1rem',
+                                                                borderBottomRightRadius: isMine ? '0' : '1rem',
+                                                                borderBottomLeftRadius: isMine ? '1rem' : '0',
+                                                                backgroundColor: isSelected ? (isMine ? '#0d6efd' : '#f8f9fa') : undefined,
+                                                                border: isSelected ? '2px solid #0d6efd' : undefined
+                                                            }}
                                                         >
+                                                            {isSelected && (
+                                                                <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-black bg-opacity-10 rounded-4">
+                                                                    <i className="bi bi-check-circle-fill text-white fs-4 shadow"></i>
+                                                                </div>
+                                                            )}
                                                             <div className="text-break">{msg.content}</div>
                                                             <div className={`text-end mt-1 small ${isMine ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>
                                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -243,8 +433,9 @@ const Chat = () => {
                                             placeholder={`Message ${selectedUser.name}...`}
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
+                                            disabled={isMessageSelectionMode}
                                         />
-                                        <button type="submit" className="btn btn-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px' }} disabled={!newMessage.trim()}>
+                                        <button type="submit" className="btn btn-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px' }} disabled={!newMessage.trim() || isMessageSelectionMode}>
                                             <i className="bi bi-send-fill fs-5 ps-1"></i>
                                         </button>
                                     </form>
