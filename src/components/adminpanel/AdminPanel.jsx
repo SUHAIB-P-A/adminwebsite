@@ -98,7 +98,7 @@ const AdminPanel = () => {
 
                     <div className="d-flex gap-3 align-items-center">
                         {/* Icons */}
-                        <button className="btn btn-light rounded-circle shadow-sm"><i className="bi bi-chat"></i></button>
+                        <button className="btn btn-light rounded-circle shadow-sm" onClick={() => navigate('/portal/chat')}><i className="bi bi-chat"></i></button>
                         <button className="btn btn-light rounded-circle shadow-sm" onClick={() => navigate('/portal/notifications')}><i className="bi bi-bell"></i></button>
 
                         <div className="position-relative" ref={accountRef}>

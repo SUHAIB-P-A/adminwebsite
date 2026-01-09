@@ -9,6 +9,7 @@ import Settings from './components/Settings/Settings';
 import SettingsOverview from './components/Settings/SettingsOverview';
 import EditProfilePage from './components/Settings/EditProfilePage';
 import Notification from './components/Notification/Notification';
+import Chat from './components/Chat/Chat';
 import './App.css';
 
 // Protected Route Component
@@ -47,6 +48,7 @@ function App() {
             <Route index element={<Navigate to="students" replace />} />
             <Route path="students" element={<Students />} />
             <Route path="enquiries" element={<Enquiries />} />
+            <Route path="chat" element={<Chat />} />
 
             {/* Staff Management - Admin Only */}
             <Route path="staff" element={
