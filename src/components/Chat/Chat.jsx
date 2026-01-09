@@ -56,6 +56,25 @@ const Chat = () => {
             // Check if we need to update state to avoid re-rendering if data is same? 
             // For now, React handles diffing well enough for small lists.
             setMessages(data);
+
+            // Mark unread messages as read
+            const unreadIds = data.filter(m => !m.is_read && parseInt(m.receiver) === parseInt(currentUserId)).map(m => m.id);
+            if (unreadIds.length > 0) {
+                // Fire and forget updates
+                Promise.all(unreadIds.map(id => axios.patch(`/api/chat/${id}/`, { is_read: true })));
+
+                // Dispatch event with count for optimistic update
+                const event = new CustomEvent('chatRead', { detail: { count: unreadIds.length } });
+                window.dispatchEvent(event);
+
+                // Optimistically update local user list to clear badge
+                setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, unread_count: 0 } : u));
+            } else {
+                // Optimization: If no unread messages, maybe we don't need to refresh users immediately?
+                // But wait, if we received a NEW message while chat was open, fetchUsers() would be needed to show it on top/update timestamp?
+                // Actually, fetchUsers is called on mount. We should probably poll "users" endpoint too if we want real-time sorting updates.
+                // For now, let's keep it simple.
+            }
         } catch (err) {
             console.error("Failed to fetch messages", err);
         }
@@ -125,8 +144,24 @@ const Chat = () => {
                                                 {/* Online status indicator could go here */}
                                             </div>
                                             <div className="flex-grow-1 text-truncate">
-                                                <div className="mb-0 text-truncate">{u.name}</div>
-                                                <div className="small opacity-75 fw-normal">{u.role}</div>
+                                                <div className="d-flex justify-content-between align-items-center mb-0">
+                                                    <div className="text-truncate fw-bold">{u.name}</div>
+                                                    {u.unread_count > 0 && (
+                                                        <span className="badge rounded-circle bg-success d-flex align-items-center justify-content-center" style={{ width: '20px', height: '20px', fontSize: '0.7rem' }}>
+                                                            {u.unread_count}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="d-flex justify-content-between align-items-center small">
+                                                    <div className="text-truncate opacity-75 fw-normal">{u.role}</div>
+                                                    {u.last_message_time && (
+                                                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                                            {new Date(u.last_message_time).toLocaleDateString() === new Date().toLocaleDateString()
+                                                                ? new Date(u.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                                : new Date(u.last_message_time).toLocaleDateString()}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </button>
                                     ))}
