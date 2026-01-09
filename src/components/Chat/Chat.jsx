@@ -29,6 +29,16 @@ const Chat = () => {
         return () => clearInterval(interval);
     }, [selectedUser]);
 
+    // Poll for users list updates (unread counts & sorting) every 10s
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Only fetch if we are not currently searching/filtering? 
+            // Ideally we merge state, but for now simple re-fetch
+            fetchUsers(true);
+        }, 10000);
+        return () => clearInterval(interval);
+    }, [currentUserId]);
+
     useEffect(() => {
         // Auto-scroll to bottom
         if (scrollRef.current) {
@@ -36,7 +46,8 @@ const Chat = () => {
         }
     }, [messages]);
 
-    const fetchUsers = async () => {
+    const fetchUsers = async (silent = false) => {
+        if (!silent) setLoadingUsers(true);
         try {
             // exclude current user from the list
             const { data } = await axios.get('/api/chat/users/', { params: { exclude_id: currentUserId } });
@@ -44,7 +55,7 @@ const Chat = () => {
         } catch (err) {
             console.error("Failed to fetch chat users", err);
         }
-        setLoadingUsers(false);
+        if (!silent) setLoadingUsers(false);
     };
 
     const fetchMessages = async (targetUserId, silent = false) => {
@@ -107,6 +118,13 @@ const Chat = () => {
         try {
             await axios.post('/api/chat/', payload);
             fetchMessages(selectedUser.id, true); // Sync correct data
+
+            // Move this user to top of list and update timestamp
+            setUsers(prevUsers => {
+                const otherUsers = prevUsers.filter(u => u.id !== selectedUser.id);
+                const updatedUser = { ...selectedUser, last_message_time: new Date().toISOString() };
+                return [updatedUser, ...otherUsers];
+            });
         } catch (err) {
             console.error("Failed to send message", err);
             // Optionally remove the optimistic message on failure
