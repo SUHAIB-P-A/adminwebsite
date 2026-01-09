@@ -22,7 +22,6 @@ const Sidebar = ({ isOpen, closeSidebar, user }) => {
         ...(isAdmin ? [{ id: 'staff', label: 'Staff Management', icon: 'bi-people-fill', path: '/portal/staff' }] : []),
         { id: 'students', label: 'Students', icon: 'bi-people', path: '/portal/students' },
         { id: 'enquiries', label: 'Enquiries', icon: 'bi-file-text', path: '/portal/enquiries' },
-        { id: 'notifications', label: 'Notifications', icon: 'bi-bell', path: '/portal/notifications' },
         { id: 'settings', label: 'Settings', icon: 'bi-gear', path: '/portal/settings' },
     ];
 
