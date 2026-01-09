@@ -11,6 +11,7 @@ const AdminPanel = () => {
     const [user, setUser] = useState({
         name: '', role: '', image: null, email: '', phone: ''
     });
+    const [notificationCount, setNotificationCount] = useState(0);
     const accountRef = useRef(null);
 
     // Close dropdown when clicking outside
@@ -39,7 +40,7 @@ const AdminPanel = () => {
             };
             setUser(prev => ({ ...prev, ...localUser }));
 
-            // 2. Background Fetch for Fresh Data (Reliable for large images not in LS)
+            // 2. Background Fetch for Fresh Data
             const staffId = localStorage.getItem('staff_id');
             if (staffId && staffId !== 'local') {
                 try {
@@ -48,10 +49,10 @@ const AdminPanel = () => {
                     setUser(prev => ({
                         ...prev,
                         name: data.name || prev.name,
-                        role: data.role || prev.role, // Ensure role is synced
+                        role: data.role || prev.role,
                         email: data.email || prev.email,
                         phone: data.phone || prev.phone,
-                        image: data.profile_image || prev.image // This fixes the missing image issue!
+                        image: data.profile_image || prev.image
                     }));
                 } catch (error) {
                     console.error("Failed to fetch background user info", error);
@@ -67,6 +68,41 @@ const AdminPanel = () => {
 
         window.addEventListener('userInfoUpdated', handleUserInfoUpdate);
         return () => window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
+    }, []);
+
+    // Notification Polling
+    useEffect(() => {
+        const fetchNotificationCount = async () => {
+            const staffId = localStorage.getItem('staff_id');
+            const role = localStorage.getItem('role');
+
+            // Don't fetch for admin
+            if (role === 'admin' || role === 'Admin') return;
+
+            if (staffId && staffId !== 'local') {
+                try {
+                    const { data } = await axios.get('/api/notifications/', { params: { recipient_id: staffId } });
+                    // Filter unread
+                    const unread = data.filter(n => !n.is_read).length;
+                    setNotificationCount(unread);
+                } catch (err) {
+                    // console.error("Failed to fetch notifications", err); // Suppress frequent errors
+                }
+            }
+        };
+
+        fetchNotificationCount();
+        const interval = setInterval(fetchNotificationCount, 15000); // Poll every 15s to keep count updated
+
+        const handleNotificationRead = () => {
+            fetchNotificationCount();
+        };
+        window.addEventListener('notificationRead', handleNotificationRead);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('notificationRead', handleNotificationRead);
+        };
     }, []);
 
     const toggleAccountCard = () => {
@@ -99,7 +135,15 @@ const AdminPanel = () => {
                     <div className="d-flex gap-3 align-items-center">
                         {/* Icons */}
                         <button className="btn btn-light rounded-circle shadow-sm" onClick={() => navigate('/portal/chat')}><i className="bi bi-chat"></i></button>
-                        <button className="btn btn-light rounded-circle shadow-sm" onClick={() => navigate('/portal/notifications')}><i className="bi bi-bell"></i></button>
+                        <button className="btn btn-light rounded-circle shadow-sm position-relative" onClick={() => navigate('/portal/notifications')}>
+                            <i className="bi bi-bell"></i>
+                            {notificationCount > 0 && user.role !== 'admin' && user.role !== 'Admin' && (
+                                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem' }}>
+                                    {notificationCount}
+                                    <span className="visually-hidden">unread messages</span>
+                                </span>
+                            )}
+                        </button>
 
                         <div className="position-relative" ref={accountRef}>
                             <button

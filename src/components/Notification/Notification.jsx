@@ -76,6 +76,8 @@ const Notification = () => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
         try {
             await axios.patch(`/api/notifications/${id}/`, { is_read: true });
+            // Dispatch event to update badge in AdminPanel
+            window.dispatchEvent(new Event('notificationRead'));
         } catch (err) {
             console.error("Failed to mark as read", err);
         }
