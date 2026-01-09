@@ -231,7 +231,7 @@ const Enquiries = () => {
                                 <th>Message Snippet</th>
                                 <th>Status</th>
                                 {isAdmin && <th>Assigned Staff</th>}
-                                <th className="text-end">Action</th>
+                                <th className>Action</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -299,72 +299,74 @@ const StaffManagement = () => {
                 </button>
             </div>
 
-            <div className="custom-card table-responsive bg-white rounded shadow-sm">
-                <table className="table table-hover mb-0 align-middle">
-                    <thead className="bg-light">
-                        <tr>
-                            {selection.active && (
-                                <th className="px-2 text-center" style={{ width: '5%' }}>
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        checked={selection.ids.length === staffList.length && staffList.length > 0}
-                                        onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? staffList.map(s => s.id) : [] }))}
-                                    />
-                                </th>
-                            )}
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Designation</th>
-                            <th>Login ID</th>
-                            <th>Status</th>
-                            <th>Current Load</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? <tr><td colSpan="8" className="text-center p-4">Loading...</td></tr> : staffList.map((s, index) => (
-                            <tr key={s.id}
-                                onMouseDown={() => handleLongPress(s.id)}
-                                onMouseUp={() => clearTimeout(longPressTimer.current)}
-                                onClick={() => selection.active && toggleId(s.id)}
-                                className={selection.ids.includes(s.id) ? "table-active" : ""}
-                                style={{ cursor: selection.active ? 'pointer' : 'default' }}
-                            >
+            <div className="custom-card table-responsive rounded bg-white rounded shadow-sm overflow-hidden">
+                <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                    <table className="table table-hover mb-0">
+                        <thead className="bg-light">
+                            <tr>
                                 {selection.active && (
-                                    <td data-label="Select" className="text-center">
-                                        <input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" />
-                                    </td>
+                                    <th className="px-2 text-center" style={{ width: '5%' }}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={selection.ids.length === staffList.length && staffList.length > 0}
+                                            onChange={(e) => setSelection(p => ({ ...p, ids: e.target.checked ? staffList.map(s => s.id) : [] }))}
+                                        />
+                                    </th>
                                 )}
-                                <td data-label="ID"><span className="fw-bold text-secondary">#STF{String(index + 1).padStart(3, '0')}</span></td>
-                                <td data-label="Name" className="fw-medium">{s.name}</td>
-                                <td data-label="Designation">{s.designation || <span className="text-muted small">N/A</span>}</td>
-                                <td data-label="Login ID"><span className="badge bg-light text-dark border">{s.login_id}</span></td>
-                                <td data-label="Status">
-                                    <span className={`badge ${s.active_status ? 'bg-success' : 'bg-secondary'}`}>
-                                        {s.active_status ? 'Active' : 'Inactive'}
-                                    </span>
-                                </td>
-                                <td data-label="Current Load">
-                                    <div className="d-flex align-items-center gap-2">
-                                        <span className="badge bg-info text-dark rounded-pill px-3">
-                                            {s.student_count} Students
-                                        </span>
-                                        <button className="btn btn-sm btn-link text-info p-0" title="View Assigned Students" onClick={(e) => { e.stopPropagation(); viewStaffStudents(s.id, s.name); }}><i className="bi bi-eye"></i></button>
-                                    </div>
-                                </td>
-                                <td data-label="Action">
-                                    <div className="d-flex gap-1">
-                                        <button className="btn btn-sm btn-link text-secondary" title="View Profile" onClick={(e) => { e.stopPropagation(); viewStaffProfile(s); }}><i className="bi bi-person-lines-fill fs-5"></i></button>
-                                        <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setErrors({}); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
-                                        <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><i className="bi bi-trash"></i></button>
-                                    </div>
-                                </td>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Designation</th>
+                                <th>Login ID</th>
+                                <th>Status</th>
+                                <th>Current Load</th>
+                                <th>Action</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {staffList.length === 0 && !loading && <div className="text-center p-4 text-muted">No staff members found.</div>}
+                        </thead>
+                        <tbody>
+                            {loading ? <tr><td colSpan="8" className="text-center p-4">Loading...</td></tr> : staffList.map((s, index) => (
+                                <tr key={s.id}
+                                    onMouseDown={() => handleLongPress(s.id)}
+                                    onMouseUp={() => clearTimeout(longPressTimer.current)}
+                                    onClick={() => selection.active && toggleId(s.id)}
+                                    className={selection.ids.includes(s.id) ? "table-active" : ""}
+                                    style={{ cursor: selection.active ? 'pointer' : 'default' }}
+                                >
+                                    {selection.active && (
+                                        <td data-label="Select" className="text-center">
+                                            <input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" />
+                                        </td>
+                                    )}
+                                    <td data-label="ID"><span className="fw-bold text-secondary">#STF{String(index + 1).padStart(3, '0')}</span></td>
+                                    <td data-label="Name" className="fw-medium">{s.name}</td>
+                                    <td data-label="Designation">{s.designation || <span className="text-muted small">N/A</span>}</td>
+                                    <td data-label="Login ID"><span className="badge bg-light text-dark border">{s.login_id}</span></td>
+                                    <td data-label="Status">
+                                        <span className={`badge ${s.active_status ? 'bg-success' : 'bg-secondary'}`}>
+                                            {s.active_status ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td data-label="Current Load">
+                                        <div className="d-flex align-items-center gap-2">
+                                            <span className="badge bg-info text-dark rounded-pill px-3">
+                                                {s.student_count} Students
+                                            </span>
+                                            <button className="btn btn-sm btn-link text-info p-0" title="View Assigned Students" onClick={(e) => { e.stopPropagation(); viewStaffStudents(s.id, s.name); }}><i className="bi bi-eye"></i></button>
+                                        </div>
+                                    </td>
+                                    <td data-label="Action">
+                                        <div className="d-flex gap-1">
+                                            <button className="btn btn-sm btn-link text-secondary" title="View Profile" onClick={(e) => { e.stopPropagation(); viewStaffProfile(s); }}><i className="bi bi-person-lines-fill fs-5"></i></button>
+                                            <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setErrors({}); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
+                                            <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><i className="bi bi-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {staffList.length === 0 && !loading && <div className="text-center p-4 text-muted">No staff members found.</div>}
+                </div>
             </div>
 
             {/* Bulk Action Bar */}
@@ -650,71 +652,71 @@ const StaffManagement = () => {
                                             </div>
                                         </div>
 
-                                        <div className="table-responsive">
-                                            {modal.data.activeTab === 'students' ? (
-                                                <div className="px-3 pb-3">
-                                                    <table className="custom-table table-hover">
-                                                        <thead className="sticky-top">
-                                                            <tr>
-                                                                <th className="px-3">#</th>
-                                                                <th>Student Name</th>
-                                                                <th>Course</th>
-                                                                <th>Status</th>
-                                                                <th>Joined</th>
-                                                                <th>Action</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {(() => {
-                                                                const filtered = modal.data.students.filter(st => {
-                                                                    if (studentFilter === 'unread') return !st.is_read;
-                                                                    if (studentFilter === 'status') return studentStatusFilter ? (st.status || 'Pending') === studentStatusFilter : true;
-                                                                    return true;
-                                                                });
-                                                                return filtered.length > 0 ? (
-                                                                    filtered.map((st, i) => (
-                                                                        <tr key={st.id}
-                                                                            className={!st.is_read ? "fw-bold table-unread" : ""}
-                                                                            onClick={() => handleViewStudent(st)}
-                                                                            style={{ cursor: 'pointer' }}
-                                                                            title="Click to view details"
-                                                                        >
-                                                                            <td className="px-3 fw-bold text-secondary">{i + 1}</td>
-                                                                            <td>
-                                                                                <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
-                                                                            </td>
-                                                                            <td>
-                                                                                <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
-                                                                            </td>
-                                                                            <td>
-                                                                                <span className={`badge rounded-pill ${st.status === 'Completed' ? 'bg-success' :
-                                                                                    st.status === 'In Progress' ? 'bg-primary' :
-                                                                                        st.status === 'Pending' ? 'bg-warning text-dark' :
-                                                                                            'bg-secondary'
-                                                                                    }`}>
-                                                                                    {st.status || 'Pending'}
-                                                                                </span>
-                                                                            </td>
-                                                                            <td className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
-                                                                            <td>
-                                                                                <div className="d-flex gap-1">
-                                                                                    <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewStudent(st); }}><i className="bi bi-eye"></i></button>
-                                                                                    <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
-                                                                                    <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
-                                                                                </div>
-                                                                            </td>
+                                        <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                                                {modal.data.activeTab === 'students' ? (
+                                                    <div className="px-3 pb-3">
+                                                        <table className="custom-table table-hover">
+                                                            <thead className="sticky-top">
+                                                                <tr>
+                                                                    <th className="px-3">#</th>
+                                                                    <th>Student Name</th>
+                                                                    <th>Course</th>
+                                                                    <th>Status</th>
+                                                                    <th>Joined</th>
+                                                                    <th>Action</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {(() => {
+                                                                    const filtered = modal.data.students.filter(st => {
+                                                                        if (studentFilter === 'unread') return !st.is_read;
+                                                                        if (studentFilter === 'status') return studentStatusFilter ? (st.status || 'Pending') === studentStatusFilter : true;
+                                                                        return true;
+                                                                    });
+                                                                    return filtered.length > 0 ? (
+                                                                        filtered.map((st, i) => (
+                                                                            <tr key={st.id}
+                                                                                className={!st.is_read ? "fw-bold table-unread" : ""}
+                                                                                onClick={() => handleViewStudent(st)}
+                                                                                style={{ cursor: 'pointer' }}
+                                                                                title="Click to view details"
+                                                                            >
+                                                                                <td className="px-3 fw-bold text-secondary">{i + 1}</td>
+                                                                                <td>
+                                                                                    <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <span className={`badge rounded-pill ${st.status === 'Completed' ? 'bg-success' :
+                                                                                        st.status === 'In Progress' ? 'bg-primary' :
+                                                                                            st.status === 'Pending' ? 'bg-warning text-dark' :
+                                                                                                'bg-secondary'
+                                                                                        }`}>
+                                                                                        {st.status || 'Pending'}
+                                                                                    </span>
+                                                                                </td>
+                                                                                <td className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
+                                                                                <td>
+                                                                                    <div className="d-flex gap-1">
+                                                                                        <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewStudent(st); }}><i className="bi bi-eye"></i></button>
+                                                                                        <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
+                                                                                        <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
+                                                                                    </div>
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))
+                                                                    ) : (
+                                                                        <tr>
+                                                                            <td colSpan="6" className="text-center p-5 text-muted">No students found.</td>
                                                                         </tr>
-                                                                    ))
-                                                                ) : (
-                                                                    <tr>
-                                                                        <td colSpan="6" className="text-center p-5 text-muted">No students found.</td>
-                                                                    </tr>
-                                                                );
-                                                            })()}
-                                                        </tbody>
-                                                    </table>
+                                                                    );
+                                                                })()}
+                                                            </tbody>
+                                                        </table>
                                                 </div>
-                                            ) : (
+                                                ) : (
                                                 <table className="table table-hover mb-0 align-middle">
                                                     <thead className="bg-light sticky-top">
                                                         <tr>
@@ -771,6 +773,7 @@ const StaffManagement = () => {
                                                 </table>
                                             )}
                                         </div>
+                                        
                                     </>
                                 )}
                             </div>
@@ -1060,7 +1063,7 @@ const StaffManagement = () => {
             }
 
             {toast.show && <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1100 }}><div className={`toast show bg-${toast.type} text-white p-2 px-3 rounded shadow`}>{toast.msg}</div></div>}
-        </div >
+        </div>
     );
 };
 
