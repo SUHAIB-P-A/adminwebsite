@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import ClearChatModal from './ClearChatModal';
 import '../adminpanel/AdminPanel.css'; // Inherit main styles
 
 const Chat = () => {
@@ -18,6 +19,7 @@ const Chat = () => {
     // User/Conversation Selection State
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [selectedChatIds, setSelectedChatIds] = useState(new Set());
+    const [showChatMenu, setShowChatMenu] = useState(false);
 
     // Prevents onClick from firing immediately after long press
     const longPressTriggered = useRef(false);
@@ -138,23 +140,17 @@ const Chat = () => {
         }
     };
 
-    const handleDeleteSelectedMessages = async () => {
-        if (!window.confirm(`Delete ${selectedMessageIds.size} message(s)?`)) return;
-
-        const idsToDelete = Array.from(selectedMessageIds);
-
-        // Optimistic UI
-        setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)));
-        setIsMessageSelectionMode(false);
-        setSelectedMessageIds(new Set());
-
-        try {
-            await axios.post('/api/chat/delete_messages/', { message_ids: idsToDelete });
-            fetchUsers(true);
-        } catch (err) {
-            console.error("Failed to delete messages", err);
-            fetchMessages(selectedUser.id, true); // Revert
-        }
+    const handleDeleteSelectedMessages = () => {
+        setDeleteContext({
+            type: 'messages',
+            title: `Delete ${selectedMessageIds.size} Message(s)?`,
+            description: (
+                <>
+                    You are about to delete {selectedMessageIds.size} selected message(s).
+                </>
+            )
+        });
+        setShowClearModal(true);
     };
 
     // User Selection Handlers
@@ -199,29 +195,131 @@ const Chat = () => {
         }
     };
 
-    const handleDeleteSelectedChats = async () => {
-        if (!window.confirm(`Delete ${selectedChatIds.size} conversation(s)? This will delete all messages.`)) return;
+    const handleDeleteSelectedChats = () => {
+        setDeleteContext({
+            type: 'chats',
+            title: `Delete ${selectedChatIds.size} Conversation(s)?`,
+            description: (
+                <>
+                    You are about to delete {selectedChatIds.size} selected conversation(s).
+                </>
+            )
+        });
+        setShowClearModal(true);
+    };
 
+    const [showClearModal, setShowClearModal] = useState(false);
+    const [showToast, setShowToast] = useState({ show: false, message: '' });
+    const [deleteContext, setDeleteContext] = useState({ type: 'single', title: '', description: '' });
+
+    // ... (existing helper functions)
+
+    const handleClearChatClick = () => {
+        if (!selectedUser) return;
+        setShowChatMenu(false);
+        setDeleteContext({
+            type: 'single',
+            title: 'Clear Chat History?',
+            description: null // Use default
+        });
+        setShowClearModal(true);
+    };
+
+    const confirmClearChat = async (mode) => {
+        setShowClearModal(false);
+
+        if (deleteContext.type === 'messages') {
+            await confirmDeleteMessages(mode);
+        } else if (deleteContext.type === 'chats') {
+            await confirmDeleteChats(mode);
+        } else {
+            // Default 'single' chat clear
+            await confirmClearSingleChat(mode);
+        }
+    };
+
+    const confirmClearSingleChat = async (mode) => {
+        // Optimistic update
+        setMessages([]);
+        setUsers(prev => prev.map(u =>
+            u.id === selectedUser.id
+                ? { ...u, last_message_time: null, unread_count: 0 }
+                : u
+        ));
+
+        try {
+            await axios.post('/api/chat/delete_conversation/', {
+                user_id: currentUserId,
+                target_user_id: selectedUser.id,
+                mode: mode
+            });
+            setShowToast({ show: true, message: 'Chat cleared successfully' });
+            setTimeout(() => setShowToast({ show: false, message: '' }), 3000);
+            fetchUsers(true);
+        } catch (err) {
+            console.error("Failed to clear chat", err);
+            alert("Failed to clear chat");
+            // Revert
+            fetchMessages(selectedUser.id);
+            fetchUsers(true);
+        }
+    };
+
+    const confirmDeleteMessages = async (mode) => {
+        const idsToDelete = Array.from(selectedMessageIds);
+
+        // Optimistic UI
+        setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)));
+        setIsMessageSelectionMode(false);
+        setSelectedMessageIds(new Set());
+
+        try {
+            await axios.post('/api/chat/delete_messages/', {
+                message_ids: idsToDelete,
+                mode: mode,
+                user_id: currentUserId
+            });
+            fetchUsers(true);
+            setShowToast({ show: true, message: 'Messages deleted successfully' });
+            setTimeout(() => setShowToast({ show: false, message: '' }), 3000);
+        } catch (err) {
+            console.error("Failed to delete messages", err);
+            fetchMessages(selectedUser.id, true); // Revert
+        }
+    };
+
+    const confirmDeleteChats = async (mode) => {
         const idsToDelete = Array.from(selectedChatIds);
+
+        // Optimistic UI (approximate)
+        setIsSelectionMode(false);
+        setSelectedChatIds(new Set());
+        setUsers(prev => prev.filter(u => !idsToDelete.includes(u.id))); // Temporarily hide? actually soft delete might not hide user, just messages. 
+        // Better: updates to generic "cleared" state if 'local', or remove if 'everyone' logic implies removal from list? 
+        // For now, let's just refresh after API call. "Clear for me" usually keeps the user in list but empty chat.
 
         try {
             await Promise.all(idsToDelete.map(id => axios.post('/api/chat/delete_conversation/', {
                 user_id: currentUserId,
-                target_user_id: id
+                target_user_id: id,
+                mode: mode
             })));
 
-            setIsSelectionMode(false);
-            setSelectedChatIds(new Set());
             if (selectedUser && idsToDelete.includes(selectedUser.id)) {
                 setMessages([]);
                 setSelectedUser(null);
             }
+            setShowToast({ show: true, message: 'Conversations deleted successfully' });
+            setTimeout(() => setShowToast({ show: false, message: '' }), 3000);
             fetchUsers();
         } catch (err) {
             console.error("Failed to delete conversations", err);
             alert("Failed to delete some conversations.");
+            fetchUsers();
         }
     };
+
+    // ... (rest of the file)
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -263,10 +361,29 @@ const Chat = () => {
     };
 
     return (
-        <div className="p-4 page-anime h-100">
+        <div className="p-4 page-anime h-100 position-relative">
+            {showToast.show && (
+                <div className="position-fixed bottom-0 start-50 translate-middle-x mb-4 anime-fade-in-up" style={{ zIndex: 2000 }}>
+                    <div className="bg-dark text-white px-4 py-2 rounded-pill shadow d-flex align-items-center">
+                        <i className="bi bi-check-circle-fill text-success me-2"></i>
+                        {showToast.message}
+                    </div>
+                </div>
+            )}
+
             <h1 className="page-title mb-4">Messages</h1>
 
+            {/* Use ClearChatModal */}
+            <ClearChatModal
+                show={showClearModal}
+                onHide={() => setShowClearModal(false)}
+                onClear={confirmClearChat}
+                title={deleteContext.title}
+                description={deleteContext.description}
+            />
+
             <div className="custom-card card border-0 shadow-sm rounded-4 overflow-hidden" style={{ height: 'calc(100vh - 150px)' }}>
+
                 <div className="row g-0 h-100">
                     {/* User List Sidebar */}
                     <div className="col-md-4 col-lg-3 border-end bg-light d-flex flex-column h-100">
@@ -358,7 +475,7 @@ const Chat = () => {
                                             <div className="small text-muted">{selectedUser.role}</div>
                                         </div>
                                     </div>
-                                    {isMessageSelectionMode && (
+                                    {isMessageSelectionMode ? (
                                         <div className="d-flex align-items-center anime-fade-in">
                                             <span className="me-3 fw-bold">{selectedMessageIds.size} Selected</span>
                                             <button className="btn btn-danger btn-sm rounded-pill me-2" onClick={handleDeleteSelectedMessages}>
@@ -367,6 +484,37 @@ const Chat = () => {
                                             <button className="btn btn-secondary btn-sm rounded-pill" onClick={() => { setIsMessageSelectionMode(false); setSelectedMessageIds(new Set()); }}>
                                                 Cancel
                                             </button>
+                                        </div>
+                                    ) : (
+                                        <div className="position-relative">
+                                            <button
+                                                className="btn btn-light rounded-circle text-secondary"
+                                                onClick={() => setShowChatMenu(!showChatMenu)}
+                                                style={{ width: '40px', height: '40px' }}
+                                                title="More options"
+                                            >
+                                                <i className="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            {showChatMenu && (
+                                                <>
+                                                    <div
+                                                        className="position-absolute end-0 top-100 mt-2 bg-white rounded shadow-sm border py-2"
+                                                        style={{ width: '180px', zIndex: 1000 }}
+                                                    >
+                                                        <button
+                                                            className="dropdown-item px-3 py-2 text-danger d-flex align-items-center"
+                                                            onClick={handleClearChatClick}
+                                                        >
+                                                            <i className="bi bi-trash3 me-2"></i> Clear Chat
+                                                        </button>
+                                                    </div>
+                                                    <div
+                                                        className="position-fixed top-0 start-0 w-100 h-100"
+                                                        style={{ zIndex: 999 }}
+                                                        onClick={() => setShowChatMenu(false)}
+                                                    ></div>
+                                                </>
+                                            )}
                                         </div>
                                     )}
                                 </div>

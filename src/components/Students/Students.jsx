@@ -31,6 +31,7 @@ const Students = () => {
     const [errors, setErrors] = useState({});
 
     const longPressTimer = useRef(null);
+    const longPressTriggered = useRef(false);
 
     const [staffList, setStaffList] = useState([]);
     const [filter, setFilter] = useState('all');
@@ -112,13 +113,26 @@ const Students = () => {
 
     const handleLongPress = (id) => {
         longPressTimer.current = setTimeout(() => {
+            longPressTriggered.current = true;
             setSelection(p => ({ ...p, active: true }));
             toggleId(id);
-        }, 800);
+        }, 500);
+    };
+
+    const cancelLongPress = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
     };
 
     // Open view modal and mark student as read (optimistic update)
     const handleViewStudent = async (student) => {
+        if (longPressTriggered.current) {
+            longPressTriggered.current = false;
+            return;
+        }
+
         if (selection.active) {
             toggleId(student.id);
             return;
@@ -225,7 +239,11 @@ const Students = () => {
                         <tbody>
                             {loading ? <tr><td colSpan={6 - (isAdmin ? 0 : 1) + (selection.active ? 1 : 0)} className="text-center p-4">Loading...</td></tr> : filteredStudents.map((s, index) => (
                                 <tr key={s.id}
-                                    onMouseDown={() => handleLongPress(s.id)} onMouseUp={() => clearTimeout(longPressTimer.current)}
+                                    onMouseDown={() => handleLongPress(s.id)}
+                                    onMouseUp={cancelLongPress}
+                                    onMouseLeave={() => { cancelLongPress(); longPressTriggered.current = false; }}
+                                    onTouchStart={() => handleLongPress(s.id)}
+                                    onTouchEnd={cancelLongPress}
                                     onClick={() => handleViewStudent(s)}
                                     className={`${selection.ids.includes(s.id) ? "table-active" : ""} ${!s.is_read ? "fw-bold table-unread" : ""}`}>
                                     {selection.active && <td data-label="Select" className="text-center col-select"><input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" /></td>}

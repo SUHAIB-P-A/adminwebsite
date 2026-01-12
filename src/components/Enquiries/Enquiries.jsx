@@ -12,6 +12,7 @@ const Enquiries = () => {
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [isEditMode, setIsEditMode] = useState(false);
     const longPressTimer = useRef(null);
+    const longPressTriggered = useRef(false);
 
     // Role check: hide Assigned Staff column for non-admin users
     const role = localStorage.getItem('role');
@@ -96,6 +97,11 @@ const Enquiries = () => {
 
     // Open Modal and Mark as Read (optimistic update)
     const handleView = async (enquiry, editMode = false) => {
+        if (longPressTriggered.current) {
+            longPressTriggered.current = false;
+            return;
+        }
+
         if (selection.active) {
             toggleId(enquiry.id);
             return;
@@ -165,9 +171,17 @@ const Enquiries = () => {
 
     const handleLongPress = (id) => {
         longPressTimer.current = setTimeout(() => {
+            longPressTriggered.current = true;
             setSelection(p => ({ ...p, active: true }));
             toggleId(id);
-        }, 800);
+        }, 500);
+    };
+
+    const cancelLongPress = () => {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
     };
 
     // Filter Logic
@@ -241,7 +255,10 @@ const Enquiries = () => {
                                 <tr
                                     key={enquiry.id}
                                     onMouseDown={() => handleLongPress(enquiry.id)}
-                                    onMouseUp={() => clearTimeout(longPressTimer.current)}
+                                    onMouseUp={cancelLongPress}
+                                    onMouseLeave={() => { cancelLongPress(); longPressTriggered.current = false; }}
+                                    onTouchStart={() => handleLongPress(enquiry.id)}
+                                    onTouchEnd={cancelLongPress}
                                     onClick={() => handleView(enquiry, false)}
                                     className={`${selection.ids.includes(enquiry.id) ? "table-active" : ""} ${!enquiry.is_read ? "fw-bold table-unread" : ""}`}
                                     style={{ cursor: 'pointer' }}
