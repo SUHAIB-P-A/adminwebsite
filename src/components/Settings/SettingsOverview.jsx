@@ -36,7 +36,7 @@ const SettingsOverview = () => {
                             className="btn btn-outline-primary ms-auto btn-sm"
                             onClick={() => navigate('/portal/settings/profile/edit')}
                         >
-                            Edit Profile
+                            View Profile
                         </button>
                     </div>
                 </div>
