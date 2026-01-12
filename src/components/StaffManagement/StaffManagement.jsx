@@ -26,6 +26,7 @@ const StaffManagement = () => {
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [errors, setErrors] = useState({});
+    const [documents, setDocuments] = useState([]); // State for staff documents
     const longPressTimer = useRef(null);
 
     // Filter State for Assigned Students Modal
@@ -61,6 +62,18 @@ const StaffManagement = () => {
         fetchStaff();
     }, []);
 
+    // Lock body scroll when modal is open
+    useEffect(() => {
+        if (modal.type || studentModal.type) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [modal.type, studentModal.type]);
+
     const showToast = (msg, type = 'success') => {
         setToast({ show: true, msg, type });
         setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 3000);
@@ -76,6 +89,70 @@ const StaffManagement = () => {
         setLoading(false);
     };
 
+    const fetchDocuments = async (staffId) => {
+        try {
+            const { data } = await axios.get('/api/staff-documents/', { params: { staff_id: staffId } });
+            setDocuments(data);
+        } catch (err) {
+            console.error("Failed to load documents", err);
+        }
+    };
+
+    useEffect(() => {
+        if (modal.data?.id && (modal.type === 'edit' || modal.type === 'view_profile')) {
+            fetchDocuments(modal.data.id);
+        } else {
+            setDocuments([]);
+        }
+    }, [modal.data?.id, modal.type]);
+
+    const handleFileUpload = async (e, type = 'document') => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (type === 'profile_image' || type === 'official_photo') {
+            // Convert to Base64 for profile image or official photo
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setModal(prev => ({ ...prev, data: { ...prev.data, [type]: reader.result } }));
+            };
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        // For Staff Documents (PDFs, etc.) - Only available in Edit/View mode with ID
+        if (!modal.data?.id) {
+            showToast("Please save the staff member first before uploading documents.", "warning");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('staff', modal.data.id);
+        formData.append('document_name', file.name);
+        formData.append('file', file);
+
+        try {
+            await axios.post('/api/staff-documents/', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            showToast("Document uploaded successfully", "success");
+            fetchDocuments(modal.data.id);
+        } catch (err) {
+            showToast("Upload failed", "danger");
+        }
+    };
+
+    const handleDeleteDocument = async (docId) => {
+        if (!window.confirm("Are you sure you want to delete this document?")) return;
+        try {
+            await axios.delete(`/api/staff-documents/${docId}/`);
+            showToast("Document deleted", "success");
+            fetchDocuments(modal.data.id);
+        } catch (err) {
+            showToast("Delete failed", "danger");
+        }
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         setErrors({});
@@ -85,7 +162,8 @@ const StaffManagement = () => {
         try {
             if (isEdit) {
                 if (!payload.password) delete payload.password;
-                await axios.put(`/api/staff/${payload.id}/`, payload);
+                delete payload.profile_image; // Protect staff's profile image
+                await axios.patch(`/api/staff/${payload.id}/`, payload);
                 setModal({ type: 'success', data: { message: "Staff updated successfully" } });
             } else {
                 await axios.post('/api/staff/', payload);
@@ -338,7 +416,26 @@ const StaffManagement = () => {
                                         </td>
                                     )}
                                     <td data-label="ID"><span className="fw-bold text-secondary">#STF{String(index + 1).padStart(3, '0')}</span></td>
-                                    <td data-label="Name" className="fw-medium">{s.name}</td>
+                                    <td data-label="Name">
+                                        <div className="d-flex align-items-center">
+                                            {s.profile_image ? (
+                                                <img
+                                                    src={s.profile_image}
+                                                    alt={s.name}
+                                                    className="rounded-circle me-2 border object-fit-cover"
+                                                    style={{ width: '40px', height: '40px' }}
+                                                />
+                                            ) : (
+                                                <div
+                                                    className="rounded-circle bg-light d-flex align-items-center justify-content-center me-2 border text-secondary fw-bold"
+                                                    style={{ width: '40px', height: '40px', fontSize: '16px' }}
+                                                >
+                                                    {s.name ? s.name.charAt(0).toUpperCase() : 'S'}
+                                                </div>
+                                            )}
+                                            <span className="fw-medium">{s.name}</span>
+                                        </div>
+                                    </td>
                                     <td data-label="Designation">{s.designation || <span className="text-muted small">N/A</span>}</td>
                                     <td data-label="Login ID"><span className="badge bg-light text-dark border">{s.login_id}</span></td>
                                     <td data-label="Status">
@@ -357,7 +454,6 @@ const StaffManagement = () => {
                                     <td data-label="Action">
                                         <div className="d-flex gap-1">
                                             <button className="btn btn-sm btn-link text-secondary" title="View Profile" onClick={(e) => { e.stopPropagation(); viewStaffProfile(s); }}><i className="bi bi-person-lines-fill fs-5"></i></button>
-                                            <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setErrors({}); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square"></i></button>
                                             <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><i className="bi bi-trash"></i></button>
                                         </div>
                                     </td>
@@ -390,6 +486,53 @@ const StaffManagement = () => {
                             <form onSubmit={handleSave}>
                                 <div className="modal-body">
                                     <h6 className="fw-bold text-primary mb-3">Personal & Professional Details</h6>
+
+                                    {/* Profile Image Trigger */}
+                                    {/* Profile Image & Official Photo Section */}
+                                    <div className="d-flex gap-5 mb-4">
+                                        {/* Read-Only Staff Profile Image */}
+                                        <div className="d-flex align-items-center">
+                                            <div className="position-relative" style={{ width: '80px', height: '80px' }}>
+                                                {modal.data.profile_image ? (
+                                                    <img src={modal.data.profile_image} alt="Profile" className="rounded-circle w-100 h-100 object-fit-cover border" />
+                                                ) : (
+                                                    <div className="bg-light rounded-circle w-100 h-100 d-flex align-items-center justify-content-center border">
+                                                        <i className="bi bi-person fs-4 text-secondary"></i>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="ms-3">
+                                                <h6 className="mb-0 fw-bold">Profile Photo</h6>
+                                                <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>Managed by<br />Staff Member</small>
+                                            </div>
+                                        </div>
+
+                                        {/* Admin Managed Official Photo */}
+                                        <div className="d-flex align-items-center">
+                                            <div className="position-relative bg-light border rounded d-flex align-items-center justify-content-center"
+                                                style={{ width: '80px', height: '80px', cursor: 'pointer', borderStyle: 'dashed !important' }}
+                                                onClick={() => document.getElementById('officialPhotoInput').click()}
+                                            >
+                                                {modal.data.official_photo ? (
+                                                    <img src={modal.data.official_photo} alt="Official" className="w-100 h-100 object-fit-cover rounded" />
+                                                ) : (
+                                                    <div className="text-center text-muted">
+                                                        <i className="bi bi-camera mb-1"></i>
+                                                        <div style={{ fontSize: '9px' }}>Official<br />Photo</div>
+                                                    </div>
+                                                )}
+                                                <div className="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm" style={{ width: '24px', height: '24px', transform: 'translate(25%, 25%)' }}>
+                                                    <i className="bi bi-pencil-fill" style={{ fontSize: '10px' }}></i>
+                                                </div>
+                                            </div>
+                                            <div className="ms-3">
+                                                <h6 className="mb-0 fw-bold">Official Photo</h6>
+                                                <small className="text-muted d-block" style={{ fontSize: '0.75rem' }}>For Office<br />Records Only</small>
+                                                <input type="file" id="officialPhotoInput" className="d-none" accept="image/*" onChange={(e) => handleFileUpload(e, 'official_photo')} />
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="row g-3">
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold">Full Name <span className="text-danger">*</span></label>
@@ -398,8 +541,13 @@ const StaffManagement = () => {
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold">Phone Number</label>
-                                            <input className={`form-control ${errors.phone_number ? 'is-invalid' : ''}`} value={modal.data.phone_number || ''} onChange={e => setModal({ ...modal, data: { ...modal.data, phone_number: e.target.value } })} placeholder="+91..." />
-                                            {renderError('phone_number')}
+                                            <input className={`form-control ${errors.phone ? 'is-invalid' : ''}`} value={modal.data.phone || ''} onChange={e => setModal({ ...modal, data: { ...modal.data, phone: e.target.value } })} placeholder="+91..." />
+                                            {renderError('phone')}
+                                        </div>
+                                        <div className="col-md-6">
+                                            <label className="form-label small fw-bold">Secondary Phone</label>
+                                            <input className={`form-control ${errors.secondary_phone ? 'is-invalid' : ''}`} value={modal.data.secondary_phone || ''} onChange={e => setModal({ ...modal, data: { ...modal.data, secondary_phone: e.target.value } })} placeholder="Optional" />
+                                            {renderError('secondary_phone')}
                                         </div>
                                         <div className="col-md-6">
                                             <label className="form-label small fw-bold">Email <span className="text-danger">*</span></label>
@@ -449,39 +597,47 @@ const StaffManagement = () => {
                                         </div>
                                     </div>
 
-                                    <hr className="my-4" />
-                                    <div className="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 className="fw-bold text-primary mb-0">Documents & Links</h6>
-                                        <button type="button" className="btn btn-sm btn-outline-primary rounded-pill" onClick={() => {
-                                            const key = prompt("Enter Document Name (e.g. Resume, ID Proof):");
-                                            if (key) {
-                                                const val = prompt("Enter Document Link/URL:");
-                                                if (val) setModal(prev => ({ ...prev, data: { ...prev.data, document_links: { ...(prev.data.document_links || {}), [key]: val } } }));
-                                            }
-                                        }}><i className="bi bi-plus-lg"></i> Add Link</button>
-                                    </div>
+                                    {modal.type === 'edit' && (
+                                        <>
+                                            <hr className="my-4" />
+                                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                                <h6 className="fw-bold text-primary mb-0">Documents</h6>
+                                                <div>
+                                                    <input type="file" id="docUpload" className="d-none" onChange={handleFileUpload} />
+                                                    <button type="button" className="btn btn-sm btn-outline-primary rounded-pill" onClick={() => document.getElementById('docUpload').click()}>
+                                                        <i className="bi bi-upload me-1"></i> Upload Document
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                                    {modal.data.document_links && Object.keys(modal.data.document_links).length > 0 ? (
-                                        <ul className="list-group list-group-flush">
-                                            {Object.entries(modal.data.document_links).map(([key, val]) => (
-                                                <li key={key} className="list-group-item d-flex justify-content-between align-items-center bg-light rounded mb-2 border-0">
-                                                    <div>
-                                                        <i className="bi bi-link-45deg me-2 text-primary"></i>
-                                                        <span className="fw-medium">{key}</span>
-                                                    </div>
-                                                    <div className="d-flex align-items-center gap-2">
-                                                        <a href={val} target="_blank" rel="noopener noreferrer" className="text-decoration-none small text-truncate d-inline-block" style={{ maxWidth: '200px' }}>{val}</a>
-                                                        <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => {
-                                                            const newLinks = { ...modal.data.document_links };
-                                                            delete newLinks[key];
-                                                            setModal(prev => ({ ...prev, data: { ...prev.data, document_links: newLinks } }));
-                                                        }}><i className="bi bi-x-circle"></i></button>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <div className="text-muted small text-center p-3 border rounded bg-light border-dashed">No documents added. Click 'Add Link' to attach files.</div>
+                                            {documents.length > 0 ? (
+                                                <ul className="list-group list-group-flush">
+                                                    {documents.map(doc => (
+                                                        <li key={doc.id} className="list-group-item d-flex justify-content-between align-items-center bg-light rounded mb-2 border-0">
+                                                            <div className="d-flex align-items-center overflow-hidden">
+                                                                <i className="bi bi-file-earmark-text text-primary me-3 fs-5"></i>
+                                                                <div className="text-truncate">
+                                                                    <div className="fw-medium text-truncate" style={{ maxWidth: '200px' }}>{doc.document_name}</div>
+                                                                    <small className="text-muted">{new Date(doc.created_at).toLocaleDateString()}</small>
+                                                                </div>
+                                                            </div>
+                                                            <div className="d-flex align-items-center gap-2">
+                                                                <a href={doc.file} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-link"><i className="bi bi-eye"></i></a>
+                                                                <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => handleDeleteDocument(doc.id)}><i className="bi bi-trash"></i></button>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <div className="text-muted small text-center p-3 border rounded bg-light border-dashed">No documents uploaded yet.</div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {modal.type === 'add' && (
+                                        <div className="alert alert-info mt-4 mb-0 small">
+                                            <i className="bi bi-info-circle me-2"></i> Save the staff member first to upload documents.
+                                        </div>
                                     )}
 
                                 </div>
@@ -506,14 +662,26 @@ const StaffManagement = () => {
                             </div>
                             <div className="modal-body p-4">
                                 <div className="d-flex align-items-center mb-4">
-                                    <div className="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style={{ width: '80px', height: '80px' }}>
-                                        <i className="bi bi-person fs-1 text-secondary"></i>
+                                    <div className="bg-light rounded-circle d-flex align-items-center justify-content-center me-3 overflow-hidden border" style={{ width: '80px', height: '80px' }}>
+                                        {modal.data.profile_image ? (
+                                            <img src={modal.data.profile_image} alt={modal.data.name} className="w-100 h-100 object-fit-cover" />
+                                        ) : (
+                                            <i className="bi bi-person fs-1 text-secondary"></i>
+                                        )}
                                     </div>
-                                    <div>
+                                    <div className="flex-grow-1">
                                         <h3 className="fw-bold mb-1">{modal.data.name}</h3>
                                         <span className={`badge ${modal.data.active_status ? 'bg-success' : 'bg-secondary'}`}>{modal.data.active_status ? 'Active' : 'Inactive'}</span>
                                         <span className="badge bg-primary ms-2">{modal.data.designation || 'Staff'}</span>
                                     </div>
+                                    {modal.data.official_photo && (
+                                        <div className="d-flex flex-column align-items-center ms-3">
+                                            <div className="rounded overflow-hidden border mb-1" style={{ width: '80px', height: '80px' }}>
+                                                <img src={modal.data.official_photo} alt="Official" className="w-100 h-100 object-fit-cover" />
+                                            </div>
+                                            <small className="text-muted" style={{ fontSize: '0.7rem' }}>Official Photo</small>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <h6 className="text-muted small fw-bold text-uppercase tracking-wide mb-3">Details</h6>
@@ -524,7 +692,10 @@ const StaffManagement = () => {
                                     </div>
                                     <div className="col-md-6">
                                         <label className="text-secondary small d-block mb-1">Phone</label>
-                                        <div className="fw-medium">{modal.data.phone_number || 'N/A'}</div>
+                                        <div className="fw-medium">
+                                            <div>{modal.data.phone || 'N/A'}</div>
+                                            {modal.data.secondary_phone && <div className="text-muted small">{modal.data.secondary_phone} (Sec)</div>}
+                                        </div>
                                     </div>
                                     <div className="col-md-6">
                                         <label className="text-secondary small d-block mb-1">Department</label>
@@ -541,16 +712,17 @@ const StaffManagement = () => {
                                 </div>
 
                                 <h6 className="text-muted small fw-bold text-uppercase tracking-wide mb-3">Documents</h6>
-                                {modal.data.document_links && Object.keys(modal.data.document_links).length > 0 ? (
+                                {documents.length > 0 ? (
                                     <div className="row g-3">
-                                        {Object.entries(modal.data.document_links).map(([key, val]) => (
-                                            <div className="col-md-6" key={key}>
+                                        {documents.map(doc => (
+                                            <div className="col-md-6" key={doc.id}>
                                                 <div className="p-3 border rounded d-flex align-items-center bg-light">
                                                     <i className="bi bi-file-earmark-text fs-4 text-primary me-3"></i>
                                                     <div className="flex-grow-1 overflow-hidden">
-                                                        <div className="fw-bold text-truncate">{key}</div>
+                                                        <div className="fw-bold text-truncate">{doc.document_name}</div>
+                                                        <small className="text-muted">{new Date(doc.created_at).toLocaleDateString()}</small>
                                                     </div>
-                                                    <a href={val} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary ms-2">View</a>
+                                                    <a href={doc.file} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary ms-2">View</a>
                                                 </div>
                                             </div>
                                         ))}
@@ -561,6 +733,9 @@ const StaffManagement = () => {
                             </div>
                             <div className="modal-footer border-0">
                                 <button type="button" className="btn btn-light rounded-pill px-4" onClick={() => setModal({ type: null })}>Close</button>
+                                <button type="button" className="btn btn-primary rounded-pill px-4 ms-2" onClick={() => { setErrors({}); setModal({ type: 'edit', data: modal.data }); }}>
+                                    <i className="bi bi-pencil-square me-2"></i>Edit Profile
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -653,70 +828,70 @@ const StaffManagement = () => {
                                         </div>
 
                                         <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-                                                {modal.data.activeTab === 'students' ? (
-                                                    <div className="px-3 pb-3">
-                                                        <table className="custom-table table-hover">
-                                                            <thead className="sticky-top">
-                                                                <tr>
-                                                                    <th className="px-3">#</th>
-                                                                    <th>Student Name</th>
-                                                                    <th>Course</th>
-                                                                    <th>Status</th>
-                                                                    <th>Joined</th>
-                                                                    <th>Action</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {(() => {
-                                                                    const filtered = modal.data.students.filter(st => {
-                                                                        if (studentFilter === 'unread') return !st.is_read;
-                                                                        if (studentFilter === 'status') return studentStatusFilter ? (st.status || 'Pending') === studentStatusFilter : true;
-                                                                        return true;
-                                                                    });
-                                                                    return filtered.length > 0 ? (
-                                                                        filtered.map((st, i) => (
-                                                                            <tr key={st.id}
-                                                                                className={!st.is_read ? "fw-bold table-unread" : ""}
-                                                                                onClick={() => handleViewStudent(st)}
-                                                                                style={{ cursor: 'pointer' }}
-                                                                                title="Click to view details"
-                                                                            >
-                                                                                <td className="px-3 fw-bold text-secondary">{i + 1}</td>
-                                                                                <td>
-                                                                                    <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <span className={`badge rounded-pill ${st.status === 'Completed' ? 'bg-success' :
-                                                                                        st.status === 'In Progress' ? 'bg-primary' :
-                                                                                            st.status === 'Pending' ? 'bg-warning text-dark' :
-                                                                                                'bg-secondary'
-                                                                                        }`}>
-                                                                                        {st.status || 'Pending'}
-                                                                                    </span>
-                                                                                </td>
-                                                                                <td className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
-                                                                                <td>
-                                                                                    <div className="d-flex gap-1">
-                                                                                        <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewStudent(st); }}><i className="bi bi-eye"></i></button>
-                                                                                        <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
-                                                                                        <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
-                                                                                    </div>
-                                                                                </td>
-                                                                            </tr>
-                                                                        ))
-                                                                    ) : (
-                                                                        <tr>
-                                                                            <td colSpan="6" className="text-center p-5 text-muted">No students found.</td>
+                                            {modal.data.activeTab === 'students' ? (
+                                                <div className="px-3 pb-3">
+                                                    <table className="custom-table table-hover">
+                                                        <thead className="sticky-top">
+                                                            <tr>
+                                                                <th className="px-3">#</th>
+                                                                <th>Student Name</th>
+                                                                <th>Course</th>
+                                                                <th>Status</th>
+                                                                <th>Joined</th>
+                                                                <th>Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {(() => {
+                                                                const filtered = modal.data.students.filter(st => {
+                                                                    if (studentFilter === 'unread') return !st.is_read;
+                                                                    if (studentFilter === 'status') return studentStatusFilter ? (st.status || 'Pending') === studentStatusFilter : true;
+                                                                    return true;
+                                                                });
+                                                                return filtered.length > 0 ? (
+                                                                    filtered.map((st, i) => (
+                                                                        <tr key={st.id}
+                                                                            className={!st.is_read ? "fw-bold table-unread" : ""}
+                                                                            onClick={() => handleViewStudent(st)}
+                                                                            style={{ cursor: 'pointer' }}
+                                                                            title="Click to view details"
+                                                                        >
+                                                                            <td className="px-3 fw-bold text-secondary">{i + 1}</td>
+                                                                            <td>
+                                                                                <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
+                                                                            </td>
+                                                                            <td>
+                                                                                <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
+                                                                            </td>
+                                                                            <td>
+                                                                                <span className={`badge rounded-pill ${st.status === 'Completed' ? 'bg-success' :
+                                                                                    st.status === 'In Progress' ? 'bg-primary' :
+                                                                                        st.status === 'Pending' ? 'bg-warning text-dark' :
+                                                                                            'bg-secondary'
+                                                                                    }`}>
+                                                                                    {st.status || 'Pending'}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
+                                                                            <td>
+                                                                                <div className="d-flex gap-1">
+                                                                                    <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewStudent(st); }}><i className="bi bi-eye"></i></button>
+                                                                                    <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
+                                                                                    <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
+                                                                                </div>
+                                                                            </td>
                                                                         </tr>
-                                                                    );
-                                                                })()}
-                                                            </tbody>
-                                                        </table>
+                                                                    ))
+                                                                ) : (
+                                                                    <tr>
+                                                                        <td colSpan="6" className="text-center p-5 text-muted">No students found.</td>
+                                                                    </tr>
+                                                                );
+                                                            })()}
+                                                        </tbody>
+                                                    </table>
                                                 </div>
-                                                ) : (
+                                            ) : (
                                                 <table className="table table-hover mb-0 align-middle">
                                                     <thead className="bg-light sticky-top">
                                                         <tr>
@@ -773,7 +948,7 @@ const StaffManagement = () => {
                                                 </table>
                                             )}
                                         </div>
-                                        
+
                                     </>
                                 )}
                             </div>
