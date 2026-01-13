@@ -489,7 +489,7 @@ const StaffManagement = () => {
                                     <td data-label="Login ID"><span className="badge bg-light text-dark border">{s.login_id}</span></td>
                                     <td data-label="Status">
                                         <span className={`badge ${s.active_status ? 'bg-success' : 'bg-secondary'}`}>
-                                            {s.active_status ? 'Online' : 'Offline'}
+                                            {s.active_status ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
                                     <td data-label="Current Load">
@@ -665,7 +665,7 @@ const StaffManagement = () => {
                                         <div className="col-12">
                                             <div className="form-check form-switch">
                                                 <input className="form-check-input" type="checkbox" id="activeSwitch" checked={modal.data.active_status} onChange={e => setModal({ ...modal, data: { ...modal.data, active_status: e.target.checked } })} />
-                                                <label className="form-check-label" htmlFor="activeSwitch">Online Status (Accepting New Leads)</label>
+                                                <label className="form-check-label" htmlFor="activeSwitch">Active Account</label>
                                             </div>
                                         </div>
 
