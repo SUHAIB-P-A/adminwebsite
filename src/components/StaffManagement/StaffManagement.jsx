@@ -3,6 +3,8 @@ import './StaffManagement.css';
 import axios from 'axios';
 import '../adminpanel/AdminPanel.css';
 import '../Settings/Settings.css';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '../../utils/cropUtils';
 
 const FIELD_CONFIG = [
     { name: 'first_name', label: 'First Name', required: true, half: true },
@@ -28,6 +30,12 @@ const StaffManagement = () => {
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [errors, setErrors] = useState({});
     const [documents, setDocuments] = useState([]); // State for staff documents
+    // Cropping State
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [activeImg, setActiveImg] = useState(null);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+    const [showPassword, setShowPassword] = useState(false);
     const longPressTimer = useRef(null);
 
     // Filter State for Assigned Students Modal
@@ -105,6 +113,10 @@ const StaffManagement = () => {
         } else {
             setDocuments([]);
         }
+        // Always reset password visibility when modal opens/changes
+        if (modal.type === 'add' || modal.type === 'edit') {
+            setShowPassword(false);
+        }
     }, [modal.data?.id, modal.type]);
 
     const handleFileUpload = async (e, type = 'document') => {
@@ -121,8 +133,15 @@ const StaffManagement = () => {
             setErrors(prev => ({ ...prev, profile_image: null })); // Clear error on success
         }
 
-        if (type === 'profile_image' || type === 'official_photo') {
-            // Convert to Base64 for profile image or official photo
+        if (type === 'profile_image') {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => setActiveImg(reader.result));
+            reader.readAsDataURL(file);
+            return;
+        }
+
+        if (type === 'official_photo') {
+            // Convert to Base64 for official photo
             const reader = new FileReader();
             reader.onloadend = () => {
                 setModal(prev => ({ ...prev, data: { ...prev.data, [type]: reader.result } }));
@@ -164,6 +183,22 @@ const StaffManagement = () => {
         }
     };
 
+    const onCropComplete = (croppedArea, croppedAreaPixels) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    };
+
+    const saveCroppedImage = async () => {
+        try {
+            const croppedImage = await getCroppedImg(activeImg, croppedAreaPixels);
+            setModal(prev => ({ ...prev, data: { ...prev.data, profile_image: croppedImage } }));
+            setActiveImg(null); // Close cropper
+            setZoom(1);
+        } catch (e) {
+            console.error(e);
+            showToast("Failed to crop image", "danger");
+        }
+    };
+
     const handleSave = async (e) => {
         e.preventDefault();
         setErrors({});
@@ -172,8 +207,11 @@ const StaffManagement = () => {
 
         try {
             if (isEdit) {
-                if (!payload.password) delete payload.password;
-                // delete payload.profile_image; // REMOVED: Allow Admin to update profile image
+                // If password is empty, delete it from payload so it's not updated
+                if (!payload.password) {
+                    delete payload.password;
+                }
+
                 await axios.patch(`/api/staff/${payload.id}/`, payload);
                 setModal({ type: 'success', data: { message: "Staff updated successfully" } });
             } else {
@@ -451,7 +489,7 @@ const StaffManagement = () => {
                                     <td data-label="Login ID"><span className="badge bg-light text-dark border">{s.login_id}</span></td>
                                     <td data-label="Status">
                                         <span className={`badge ${s.active_status ? 'bg-success' : 'bg-secondary'}`}>
-                                            {s.active_status ? 'Active' : 'Inactive'}
+                                            {s.active_status ? 'Online' : 'Offline'}
                                         </span>
                                     </td>
                                     <td data-label="Current Load">
@@ -600,15 +638,34 @@ const StaffManagement = () => {
                                                 {renderError('login_id')}
                                             </div>
                                             <div className="col-md-6">
-                                                <label className="form-label small fw-bold">Password {modal.type === 'edit' && '(Leave blank to keep)'}</label>
-                                                <input className={`form-control ${errors.password ? 'is-invalid' : ''}`} type="password" required={modal.type === 'add'} value={modal.data.password || ''} onChange={e => setModal({ ...modal, data: { ...modal.data, password: e.target.value } })} />
+                                                <label className="form-label small fw-bold">Password</label>
+                                                <div className="input-group">
+                                                    <input
+                                                        className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        required={modal.type === 'add'}
+                                                        placeholder={modal.type === 'add' ? 'Enter Password' : ''}
+                                                        autoComplete="new-password"
+                                                        value={modal.data.password || ''}
+                                                        onChange={e => setModal({ ...modal, data: { ...modal.data, password: e.target.value } })}
+                                                    />
+                                                    <button
+                                                        className="btn btn-outline-secondary"
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        title={showPassword ? "Hide Password" : "Show Password"}
+                                                    >
+                                                        <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                                                    </button>
+                                                </div>
+                                                {modal.type === 'edit' && <div className="form-text text-muted small fst-italic">Leave blank to keep the current password.</div>}
                                                 {renderError('password')}
                                             </div>
-                                            <div className="col-12">
-                                                <div className="form-check form-switch">
-                                                    <input className="form-check-input" type="checkbox" id="activeSwitch" checked={modal.data.active_status} onChange={e => setModal({ ...modal, data: { ...modal.data, active_status: e.target.checked } })} />
-                                                    <label className="form-check-label" htmlFor="activeSwitch">Active Account</label>
-                                                </div>
+                                        </div>
+                                        <div className="col-12">
+                                            <div className="form-check form-switch">
+                                                <input className="form-check-input" type="checkbox" id="activeSwitch" checked={modal.data.active_status} onChange={e => setModal({ ...modal, data: { ...modal.data, active_status: e.target.checked } })} />
+                                                <label className="form-check-label" htmlFor="activeSwitch">Online Status (Accepting New Leads)</label>
                                             </div>
                                         </div>
 
@@ -654,7 +711,6 @@ const StaffManagement = () => {
                                                 <i className="bi bi-info-circle me-2"></i> Save the staff member first to upload documents.
                                             </div>
                                         )}
-
                                     </div>
                                     <div className="modal-footer border-0">
                                         <button type="button" className="btn btn-light rounded-pill" onClick={() => setModal({ type: null })}>Cancel</button>
@@ -663,9 +719,8 @@ const StaffManagement = () => {
                                 </form>
                             </div>
                         </div>
-                    </div>
-                )
-            }
+                    </div >
+                )}
 
             {/* View Profile Modal */}
             {
@@ -1305,7 +1360,56 @@ const StaffManagement = () => {
                 )
             }
 
-            {toast.show && <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1100 }}><div className={`toast show bg-${toast.type} text-white p-2 px-3 rounded shadow`}>{toast.msg}</div></div>}
+            {/* Cropper Overlay */}
+            {
+                activeImg && (
+                    <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 2000 }}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content overflow-hidden border-0 shadow-lg">
+                                <div className="modal-header p-3 border-bottom-0">
+                                    <h6 className="modal-title fw-bold">Crop Profile Photo</h6>
+                                    <button type="button" className="btn-close" onClick={() => { setActiveImg(null); setZoom(1); }}></button>
+                                </div>
+                                <div className="modal-body p-0 position-relative" style={{ height: '400px', backgroundColor: '#000' }}>
+                                    <Cropper
+                                        image={activeImg}
+                                        crop={crop}
+                                        zoom={zoom}
+                                        aspect={1}
+                                        onCropChange={setCrop}
+                                        onCropComplete={onCropComplete}
+                                        onZoomChange={setZoom}
+                                    />
+                                </div>
+                                <div className="modal-footer p-3 border-top-0 bg-light">
+                                    <div className="d-flex flex-column w-100 gap-3">
+                                        <div className="d-flex align-items-center gap-3">
+                                            <i className="bi bi-dash-lg small text-muted"></i>
+                                            <input
+                                                type="range"
+                                                value={zoom}
+                                                min={1}
+                                                max={3}
+                                                step={0.1}
+                                                aria-labelledby="Zoom"
+                                                onChange={(e) => setZoom(Number(e.target.value))}
+                                                className="form-range"
+                                            />
+                                            <i className="bi bi-plus-lg small text-muted"></i>
+                                        </div>
+                                        <div className="d-flex gap-2 w-100">
+                                            <button className="btn btn-light rounded-pill w-50" onClick={() => { setActiveImg(null); setZoom(1); }}>Cancel</button>
+                                            <button className="btn btn-primary rounded-pill w-50" onClick={saveCroppedImage}>Save Photo</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {toast.show && <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 2100 }}><div className={`toast show bg-${toast.type} text-white p-2 px-3 rounded shadow`}>{toast.msg}</div></div>}
         </div >
     );
 };
