@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ClearChatModal = ({ show, onHide, onClear, title, description }) => {
+const ClearChatModal = ({ show, onHide, onClear, title, description, canDeleteForEveryone }) => {
     if (!show) return null;
 
     return (
@@ -26,9 +26,18 @@ const ClearChatModal = ({ show, onHide, onClear, title, description }) => {
                                 </p>
                             </div>
                         </div>
-                        <div className="modal-footer border-top-0 pt-0 justify-content-center pb-4">
-                            <button type="button" className="btn btn-light rounded-pill px-4 me-2" onClick={onHide}>Cancel</button>
-                            <button type="button" className="btn btn-danger rounded-pill px-4" onClick={() => onClear('local')}>Clear Chat</button>
+                        <div className="modal-footer border-top-0 pt-0 justify-content-center pb-4 flex-column">
+                            {canDeleteForEveryone && (
+                                <button type="button" className="btn btn-outline-danger rounded-pill px-4 w-100 mb-2" onClick={() => onClear('everyone')}>
+                                    Delete for Everyone
+                                </button>
+                            )}
+                            <div className="d-flex w-100 gap-2">
+                                <button type="button" className="btn btn-light rounded-pill w-50" onClick={onHide}>Cancel</button>
+                                <button type="button" className="btn btn-danger rounded-pill w-50" onClick={() => onClear('local')}>
+                                    {canDeleteForEveryone ? 'Delete for Me' : 'Clear Chat'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

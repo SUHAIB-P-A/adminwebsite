@@ -141,6 +141,11 @@ const Chat = () => {
     };
 
     const handleDeleteSelectedMessages = () => {
+        const canDeleteForEveryone = Array.from(selectedMessageIds).every(id => {
+            const msg = messages.find(m => m.id === id);
+            return msg && parseInt(msg.sender) === parseInt(currentUserId);
+        });
+
         setDeleteContext({
             type: 'messages',
             title: `Delete ${selectedMessageIds.size} Message(s)?`,
@@ -148,7 +153,8 @@ const Chat = () => {
                 <>
                     You are about to delete {selectedMessageIds.size} selected message(s).
                 </>
-            )
+            ),
+            canDeleteForEveryone
         });
         setShowClearModal(true);
     };
@@ -269,7 +275,17 @@ const Chat = () => {
         const idsToDelete = Array.from(selectedMessageIds);
 
         // Optimistic UI
-        setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)));
+        if (mode === 'everyone') {
+            setMessages(prev => prev.map(m => {
+                if (selectedMessageIds.has(m.id)) {
+                    return { ...m, content: "You deleted this message", is_revoked_placeholder: true };
+                }
+                return m;
+            }));
+        } else {
+            setMessages(prev => prev.filter(m => !selectedMessageIds.has(m.id)));
+        }
+
         setIsMessageSelectionMode(false);
         setSelectedMessageIds(new Set());
 
@@ -282,6 +298,11 @@ const Chat = () => {
             fetchUsers(true);
             setShowToast({ show: true, message: 'Messages deleted successfully' });
             setTimeout(() => setShowToast({ show: false, message: '' }), 3000);
+
+            // Re-fetch messages to ensure server state is synced (especially for the placeholder text)
+            if (mode === 'everyone') {
+                fetchMessages(selectedUser.id, true);
+            }
         } catch (err) {
             console.error("Failed to delete messages", err);
             fetchMessages(selectedUser.id, true); // Revert
@@ -380,6 +401,7 @@ const Chat = () => {
                 onClear={confirmClearChat}
                 title={deleteContext.title}
                 description={deleteContext.description}
+                canDeleteForEveryone={deleteContext.canDeleteForEveryone}
             />
 
             <div className="custom-card card border-0 shadow-sm rounded-4 overflow-hidden" style={{ height: 'calc(100vh - 150px)' }}>
@@ -560,7 +582,7 @@ const Chat = () => {
                                                                     <i className="bi bi-check-circle-fill text-white fs-4 shadow"></i>
                                                                 </div>
                                                             )}
-                                                            <div className="text-break">{msg.content}</div>
+                                                            <div className={`text-break ${msg.is_revoked_placeholder ? 'fst-italic opacity-50' : ''}`}>{msg.content}</div>
                                                             <div className={`text-end mt-1 small ${isMine ? 'text-white-50' : 'text-muted'}`} style={{ fontSize: '0.7rem' }}>
                                                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </div>
