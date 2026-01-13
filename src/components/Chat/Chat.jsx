@@ -381,8 +381,19 @@ const Chat = () => {
         }
     };
 
+    const inputRef = useRef(null);
+
+    // Auto-focus input when user changes
+    useEffect(() => {
+        if (selectedUser && inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, [selectedUser]);
+
     return (
         <div className="p-4 page-anime h-100 position-relative">
+            {/* ... toast code ... */}
+            {/* ... rest of the code ... */}
             {showToast.show && (
                 <div className="position-fixed bottom-0 start-50 translate-middle-x mb-4 anime-fade-in-up" style={{ zIndex: 2000 }}>
                     <div className="bg-dark text-white px-4 py-2 rounded-pill shadow d-flex align-items-center">
@@ -598,6 +609,7 @@ const Chat = () => {
                                 <div className="p-3 border-top bg-white">
                                     <form onSubmit={handleSendMessage} className="d-flex gap-2">
                                         <input
+                                            ref={inputRef}
                                             type="text"
                                             className="form-control rounded-pill bg-light border-0 px-4"
                                             placeholder={`Message ${selectedUser.name}...`}

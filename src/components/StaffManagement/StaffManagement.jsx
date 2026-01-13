@@ -326,7 +326,8 @@ const StaffManagement = () => {
         if (!student.is_read) {
             try {
                 // Update backend
-                await axios.put(`/api/submit/${student.id}/`, { ...student, is_read: true });
+                // Update backend using PATCH for partial update
+                await axios.patch(`/api/submit/${student.id}/`, { is_read: true });
 
                 // Update local modal data
                 setModal(prev => ({
@@ -417,13 +418,41 @@ const StaffManagement = () => {
         return errors[field] ? <div className="invalid-feedback d-block">{Array.isArray(errors[field]) ? errors[field][0] : errors[field]}</div> : null;
     };
 
+    // Reallocate State
+    const [reallocateModal, setReallocateModal] = useState({ show: false, loading: false, result: null });
+    const [reallocateData, setReallocateData] = useState({
+        source_staff_id: '',
+        target_staff_id: '',
+        criteria: 'unread',
+        count: 50,
+        type: 'student'
+    });
+
+    const handleReallocate = async (e) => {
+        e.preventDefault();
+        setReallocateModal(p => ({ ...p, loading: true }));
+        try {
+            const { data } = await axios.post('/api/staff/reallocate/', reallocateData);
+            setReallocateModal(p => ({ ...p, loading: false, result: data }));
+            fetchStaff(); // Refresh counts
+        } catch (err) {
+            setReallocateModal(p => ({ ...p, loading: false }));
+            showToast("Reallocation failed", "danger");
+        }
+    };
+
     return (
         <div className="p-4 page-anime">
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="page-title mb-0">Staff Management</h1>
-                <button className="btn btn-primary rounded-pill px-4" onClick={() => { setErrors({}); setModal({ type: 'add', data: { active_status: true, document_links: {} } }); }}>
-                    <i className="bi bi-plus-lg me-2"></i> Add Staff
-                </button>
+                <div className="d-flex gap-2">
+                    <button className="btn btn-outline-primary rounded-pill px-4" onClick={() => setReallocateModal({ show: true, loading: false, result: null })}>
+                        <i className="bi bi-arrow-left-right me-2"></i> Reallocate Leads
+                    </button>
+                    <button className="btn btn-primary rounded-pill px-4" onClick={() => { setErrors({}); setModal({ type: 'add', data: { active_status: true, document_links: {} } }); }}>
+                        <i className="bi bi-plus-lg me-2"></i> Add Staff
+                    </button>
+                </div>
             </div>
 
             <div className="custom-card table-responsive rounded bg-white rounded shadow-sm overflow-hidden">
@@ -1410,7 +1439,88 @@ const StaffManagement = () => {
             }
 
             {toast.show && <div className="position-fixed bottom-0 end-0 p-3" style={{ zIndex: 2100 }}><div className={`toast show bg-${toast.type} text-white p-2 px-3 rounded shadow`}>{toast.msg}</div></div>}
-        </div >
+            {/* Reallocate Leads Modal */}
+            {reallocateModal.show && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="modal-header">
+                                <h5 className="fw-bold">Reallocate Leads</h5>
+                                <button className="btn-close" onClick={() => setReallocateModal({ show: false, loading: false, result: null })}></button>
+                            </div>
+                            <div className="modal-body">
+                                {reallocateModal.result ? (
+                                    <div className="text-center py-4">
+                                        <div className="mb-3 text-success">
+                                            <i className="bi bi-check-circle-fill fs-1"></i>
+                                        </div>
+                                        <h5>Success!</h5>
+                                        <p>{reallocateModal.result.message}</p>
+                                        <button className="btn btn-primary rounded-pill px-4" onClick={() => setReallocateModal({ show: false, loading: false, result: null })}>Close</button>
+                                    </div>
+                                ) : (
+                                    <form onSubmit={handleReallocate}>
+                                        <div className="mb-3">
+                                            <label className="form-label small fw-bold">Lead Type</label>
+                                            <select className="form-select" value={reallocateData.type} onChange={e => setReallocateData({ ...reallocateData, type: e.target.value })}>
+                                                <option value="student">Students</option>
+                                                <option value="enquiry">Enquiries</option>
+                                            </select>
+                                            <div className="form-text">Choose what to transfer.</div>
+                                        </div>
+
+                                        <div className="mb-3">
+                                            <label className="form-label small fw-bold">From Staff (Source)</label>
+                                            <select className="form-select" value={reallocateData.source_staff_id} onChange={e => setReallocateData({ ...reallocateData, source_staff_id: e.target.value })}>
+                                                <option value="">Select Source (Optional - 'All' if empty)</option>
+                                                <option value="all">All Staff</option>
+                                                {staffList.map(s => <option key={s.id} value={s.id}>{s.name} ({s.student_count} Students)</option>)}
+                                            </select>
+                                            <div className="form-text">Leave empty or select 'All' to check all pending items.</div>
+                                        </div>
+
+                                        <div className="mb-3">
+                                            <label className="form-label small fw-bold">To Staff (Target) <span className="text-danger">*</span></label>
+                                            <select className="form-select" required value={reallocateData.target_staff_id} onChange={e => setReallocateData({ ...reallocateData, target_staff_id: e.target.value })}>
+                                                <option value="">Select Target Staff</option>
+                                                {staffList.filter(s => s.active_status).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="row g-2">
+                                            <div className="col-6">
+                                                <label className="form-label small fw-bold">Filter Criteria</label>
+                                                <select className="form-select" value={reallocateData.criteria} onChange={e => setReallocateData({ ...reallocateData, criteria: e.target.value })}>
+                                                    <option value="unread">Unread Only</option>
+                                                    <option value="pending">Pending Status Only</option>
+                                                    <option value="all">All Items</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="form-label small fw-bold">Quantity</label>
+                                                <input type="number" className="form-control" value={reallocateData.count} onChange={e => setReallocateData({ ...reallocateData, count: e.target.value })} min="1" />
+                                            </div>
+                                        </div>
+
+                                        <div className="alert alert-warning mt-3 small">
+                                            <i className="bi bi-exclamation-triangle me-2"></i>
+                                            This will move up to <strong>{reallocateData.count}</strong> {reallocateData.criteria} {reallocateData.type}s to the target staff.
+                                        </div>
+
+                                        <div className="d-grid mt-4">
+                                            <button type="submit" className="btn btn-primary rounded-pill" disabled={reallocateModal.loading}>
+                                                {reallocateModal.loading ? 'Processing...' : 'Transfer Leads'}
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </div>
     );
 };
 
