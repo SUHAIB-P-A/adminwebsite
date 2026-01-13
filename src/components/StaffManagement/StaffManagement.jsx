@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './StaffManagement.css';
 import axios from 'axios';
 import '../adminpanel/AdminPanel.css';
@@ -42,27 +42,37 @@ const StaffManagement = () => {
     const [studentFilter, setStudentFilter] = useState('all');
     const [studentStatusFilter, setStudentStatusFilter] = useState('Pending');
 
+    const filteredStudents = useMemo(() => {
+        if (modal.type !== 'view_students' || !modal.data?.students) return [];
+        return modal.data.students.filter(st => {
+            if (studentFilter === 'unread') return !st.is_read;
+            if (studentFilter === 'status') return studentStatusFilter ? (st.status || 'Pending') === studentStatusFilter : true;
+            return true;
+        });
+    }, [modal.data?.students, studentFilter, studentStatusFilter, modal.type]);
+
+    const filteredEnquiries = useMemo(() => {
+        if (modal.type !== 'view_students' || !modal.data?.enquiries) return [];
+        return modal.data.enquiries.filter(enq => {
+            if (studentFilter === 'unread') return !enq.is_read;
+            if (studentFilter === 'status') return studentStatusFilter ? (enq.status || 'Pending') === studentStatusFilter : true;
+            return true;
+        });
+    }, [modal.data?.enquiries, studentFilter, studentStatusFilter, modal.type]);
+
     const renderInput = (f, val, handler) => {
         const errorMsg = errors[f.name];
-        const hasError = !!errorMsg;
         const props = {
-            name: f.name,
-            value: val[f.name] || '',
-            onChange: handler,
-            required: f.required,
-            className: `form-control ${hasError ? 'is-invalid' : ''}`,
-            placeholder: f.label
+            name: f.name, value: val[f.name] || '', onChange: handler, required: f.required,
+            className: `form-control ${errorMsg ? 'is-invalid' : ''}`, placeholder: f.label
         };
-
-        let inputElem;
-        if (f.type === 'select') inputElem = <select {...props} className={`form-select ${hasError ? 'is-invalid' : ''}`}><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
-        else if (f.type === 'textarea') inputElem = <textarea {...props} rows="2" />;
-        else inputElem = <input {...props} type={f.type || 'text'} />;
-
         return (
             <>
-                {inputElem}
-                {hasError && <div className="invalid-feedback">{Array.isArray(errorMsg) ? errorMsg[0] : errorMsg}</div>}
+                {f.type === 'select' ?
+                    <select {...props} className={`form-select ${errorMsg ? 'is-invalid' : ''}`}><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select> :
+                    f.type === 'textarea' ? <textarea {...props} rows="2" /> : <input {...props} type={f.type || 'text'} />
+                }
+                {errorMsg && <div className="invalid-feedback">{Array.isArray(errorMsg) ? errorMsg[0] : errorMsg}</div>}
             </>
         );
     };
@@ -102,9 +112,7 @@ const StaffManagement = () => {
         try {
             const { data } = await axios.get('/api/staff-documents/', { params: { staff_id: staffId } });
             setDocuments(data);
-        } catch (err) {
-            console.error("Failed to load documents", err);
-        }
+        } catch (err) { }
     };
 
     useEffect(() => {
@@ -337,24 +345,11 @@ const StaffManagement = () => {
                         students: prev.data.students.map(s => s.id === student.id ? { ...s, is_read: true } : s)
                     }
                 }));
-            } catch (err) {
-                console.error("Failed to mark as read", err);
-            }
+            } catch (err) { }
         }
     };
 
-    const handleAction = async (method, url, data) => {
-        try {
-            await axios({ method, url, data });
-            showToast('Student deleted successfully', 'success');
-            setStudentModal({ type: null });
-            // Refresh data
-            viewStaffStudents(modal.data.id, modal.data.name); // Corrected from handleViewStudents
-        } catch (error) {
-            console.error(error);
-            showToast('Failed to perform action', 'danger');
-        }
-    };
+
 
     const handleViewEnquiry = async (enquiry) => {
         setStudentModal({ type: 'view_enquiry', data: enquiry });
@@ -378,7 +373,6 @@ const StaffManagement = () => {
 
                 await axios.put(`/api/enquiries/${enquiry.id}/`, { ...enquiry, is_read: true }, { params });
             } catch (err) {
-                console.error("Failed to mark enquiry as read", err);
                 // Revert on failure
                 setModal(prev => ({
                     ...prev,
@@ -457,7 +451,7 @@ const StaffManagement = () => {
 
             <div className="custom-card table-responsive rounded bg-white rounded shadow-sm overflow-hidden">
                 <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-                    <table className="table table-hover mb-0">
+                    <table className="table table-hover mb-0 table-responsive-stack">
                         <thead className="bg-light">
                             <tr>
                                 {selection.active && (
@@ -530,7 +524,7 @@ const StaffManagement = () => {
                                         </div>
                                     </td>
                                     <td data-label="Action">
-                                        <div className="d-flex gap-1">
+                                        <div className="d-flex gap-1 justify-content-end">
                                             <button className="btn btn-sm btn-link text-secondary" title="Manage Profile" onClick={(e) => { e.stopPropagation(); setErrors({}); setModal({ type: 'edit', data: s }); }}><i className="bi bi-pencil-square fs-5"></i></button>
                                             <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}><i className="bi bi-trash"></i></button>
                                         </div>
@@ -980,7 +974,7 @@ const StaffManagement = () => {
                                             <div className="table-responsive custom-scrollbar" style={{ maxHeight: 'calc(100vh - 200px)' }}>
                                                 {modal.data.activeTab === 'students' ? (
                                                     <div className="px-3 pb-3">
-                                                        <table className="custom-table table-hover">
+                                                        <table className="custom-table table-hover table-responsive-stack">
                                                             <thead className="sticky-top">
                                                                 <tr>
                                                                     <th className="px-3">#</th>
@@ -992,57 +986,50 @@ const StaffManagement = () => {
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
-                                                                {(() => {
-                                                                    const filtered = modal.data.students.filter(st => {
-                                                                        if (studentFilter === 'unread') return !st.is_read;
-                                                                        if (studentFilter === 'status') return studentStatusFilter ? (st.status || 'Pending') === studentStatusFilter : true;
-                                                                        return true;
-                                                                    });
-                                                                    return filtered.length > 0 ? (
-                                                                        filtered.map((st, i) => (
-                                                                            <tr key={st.id}
-                                                                                className={!st.is_read ? "fw-bold table-unread" : ""}
-                                                                                onClick={() => handleViewStudent(st)}
-                                                                                style={{ cursor: 'pointer' }}
-                                                                                title="Click to view details"
-                                                                            >
-                                                                                <td className="px-3 fw-bold text-secondary">{i + 1}</td>
-                                                                                <td>
-                                                                                    <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <span className={`badge rounded-pill ${st.status === 'Completed' ? 'bg-success' :
-                                                                                        st.status === 'In Progress' ? 'bg-primary' :
-                                                                                            st.status === 'Pending' ? 'bg-warning text-dark' :
-                                                                                                'bg-secondary'
-                                                                                        }`}>
-                                                                                        {st.status || 'Pending'}
-                                                                                    </span>
-                                                                                </td>
-                                                                                <td className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
-                                                                                <td>
-                                                                                    <div className="d-flex gap-1">
-                                                                                        <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewStudent(st); }}><i className="bi bi-eye"></i></button>
-                                                                                        <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
-                                                                                        <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
-                                                                                    </div>
-                                                                                </td>
-                                                                            </tr>
-                                                                        ))
-                                                                    ) : (
-                                                                        <tr>
-                                                                            <td colSpan="6" className="text-center p-5 text-muted">No students found.</td>
+                                                                {filteredStudents.length > 0 ? (
+                                                                    filteredStudents.map((st, i) => (
+                                                                        <tr key={st.id}
+                                                                            className={!st.is_read ? "fw-bold table-unread" : ""}
+                                                                            onClick={() => handleViewStudent(st)}
+                                                                            style={{ cursor: 'pointer' }}
+                                                                            title="Click to view details"
+                                                                        >
+                                                                            <td data-label="#" className="px-3 fw-bold text-secondary">{i + 1}</td>
+                                                                            <td data-label="Name">
+                                                                                <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
+                                                                            </td>
+                                                                            <td data-label="Course">
+                                                                                <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>
+                                                                            </td>
+                                                                            <td data-label="Status">
+                                                                                <span className={`badge rounded-pill ${st.status === 'Completed' ? 'bg-success' :
+                                                                                    st.status === 'In Progress' ? 'bg-primary' :
+                                                                                        st.status === 'Pending' ? 'bg-warning text-dark' :
+                                                                                            'bg-secondary'
+                                                                                    }`}>
+                                                                                    {st.status || 'Pending'}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td data-label="Date" className="small text-muted">{new Date(st.created_at).toLocaleDateString()}</td>
+                                                                            <td data-label="Actions">
+                                                                                <div className="d-flex gap-1 justify-content-end">
+                                                                                    <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewStudent(st); }}><i className="bi bi-eye"></i></button>
+                                                                                    <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit', data: st }); }}><i className="bi bi-pencil-square"></i></button>
+                                                                                    <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete', data: { id: st.id } }); }}><i className="bi bi-trash"></i></button>
+                                                                                </div>
+                                                                            </td>
                                                                         </tr>
-                                                                    );
-                                                                })()}
+                                                                    ))
+                                                                ) : (
+                                                                    <tr>
+                                                                        <td colSpan="6" className="text-center p-5 text-muted">No students found.</td>
+                                                                    </tr>
+                                                                )}
                                                             </tbody>
                                                         </table>
                                                     </div>
                                                 ) : (
-                                                    <table className="table table-hover mb-0 align-middle">
+                                                    <table className="table table-hover mb-0 align-middle table-responsive-stack">
                                                         <thead className="bg-light sticky-top">
                                                             <tr>
                                                                 <th className="px-3">#</th>
@@ -1054,46 +1041,38 @@ const StaffManagement = () => {
                                                             </tr>
                                                         </thead>
                                                         <tbody>
-                                                            {(() => {
-                                                                const filteredEnquiries = modal.data.enquiries.filter(enq => {
-                                                                    if (studentFilter === 'unread') return !enq.is_read;
-                                                                    if (studentFilter === 'status') return studentStatusFilter ? (enq.status || 'Pending') === studentStatusFilter : true;
-                                                                    return true;
-                                                                });
-
-                                                                return filteredEnquiries.length > 0 ? (
-                                                                    filteredEnquiries.map((enq, i) => (
-                                                                        <tr key={enq.id}
-                                                                            className={!enq.is_read ? "fw-bold table-unread" : ""}
-                                                                            onClick={() => handleViewEnquiry(enq)}
-                                                                            style={{ cursor: 'pointer' }}
-                                                                        >
-                                                                            <td className="px-3 fw-bold text-secondary">{i + 1}</td>
-                                                                            <td>
-                                                                                <div className="fw-medium">{enq.name} {!enq.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
-                                                                            </td>
-                                                                            <td title={enq.message} className="text-truncate" style={{ maxWidth: '200px' }}>{enq.message || '-'}</td>
-                                                                            <td>
-                                                                                <span className={`badge ${enq.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                                                                    {enq.status || 'Pending'}
-                                                                                </span>
-                                                                            </td>
-                                                                            <td className="small text-muted">{new Date(enq.created_at).toLocaleDateString()}</td>
-                                                                            <td>
-                                                                                <div className="d-flex gap-1">
-                                                                                    <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewEnquiry(enq); }}><i className="bi bi-eye"></i></button>
-                                                                                    <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit_enquiry', data: enq }); }}><i className="bi bi-pencil-square"></i></button>
-                                                                                    <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete_enquiry', data: { id: enq.id } }); }}><i className="bi bi-trash"></i></button>
-                                                                                </div>
-                                                                            </td>
-                                                                        </tr>
-                                                                    ))
-                                                                ) : (
-                                                                    <tr>
-                                                                        <td colSpan="5" className="text-center p-5 text-muted">No assigned enquiries found matching the filter.</td>
+                                                            {filteredEnquiries.length > 0 ? (
+                                                                filteredEnquiries.map((enq, i) => (
+                                                                    <tr key={enq.id}
+                                                                        className={!enq.is_read ? "fw-bold table-unread" : ""}
+                                                                        onClick={() => handleViewEnquiry(enq)}
+                                                                        style={{ cursor: 'pointer' }}
+                                                                    >
+                                                                        <td data-label="#" className="px-3 fw-bold text-secondary">{i + 1}</td>
+                                                                        <td data-label="Name">
+                                                                            <div className="fw-medium">{enq.name} {!enq.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
+                                                                        </td>
+                                                                        <td data-label="Message" title={enq.message} className="text-truncate" style={{ maxWidth: '200px' }}>{enq.message || '-'}</td>
+                                                                        <td data-label="Status">
+                                                                            <span className={`badge ${enq.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                                                                {enq.status || 'Pending'}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td data-label="Date" className="small text-muted">{new Date(enq.created_at).toLocaleDateString()}</td>
+                                                                        <td data-label="Actions">
+                                                                            <div className="d-flex gap-1 justify-content-end">
+                                                                                <button className="btn btn-sm btn-link text-secondary" onClick={(e) => { e.stopPropagation(); handleViewEnquiry(enq); }}><i className="bi bi-eye"></i></button>
+                                                                                <button className="btn btn-sm btn-link text-primary" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'edit_enquiry', data: enq }); }}><i className="bi bi-pencil-square"></i></button>
+                                                                                <button className="btn btn-sm btn-link text-danger" onClick={(e) => { e.stopPropagation(); setStudentModal({ type: 'delete_enquiry', data: { id: enq.id } }); }}><i className="bi bi-trash"></i></button>
+                                                                            </div>
+                                                                        </td>
                                                                     </tr>
-                                                                );
-                                                            })()}
+                                                                ))
+                                                            ) : (
+                                                                <tr>
+                                                                    <td colSpan="5" className="text-center p-5 text-muted">No assigned enquiries found matching the filter.</td>
+                                                                </tr>
+                                                            )}
                                                         </tbody>
                                                     </table>
                                                 )}
