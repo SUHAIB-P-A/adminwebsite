@@ -20,6 +20,7 @@ const FIELD_CONFIG = [
     { name: 'city', label: 'City' },
     { name: 'course_selected', label: 'Course Selected' },
     { name: 'colleges_selected', label: 'Colleges Selected', type: 'textarea' },
+    { name: 'notes', label: 'Comments / Notes', type: 'textarea' },
 ];
 
 const Students = () => {
@@ -215,6 +216,7 @@ const Students = () => {
                         <option value="Pending">Pending</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Completed">Completed</option>
+                        <option value="Follow Up">Follow Up</option>
                     </select>
                 </div>
                 <button className="btn btn-primary rounded-pill px-4" onClick={() => setModal({ type: 'add', data: {} })}>
@@ -255,11 +257,18 @@ const Students = () => {
                                             <span className="status-label d-md-none text-secondary small">Status:</span>
                                             <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${s.status === 'Completed' ? 'bg-success' :
                                                 s.status === 'In Progress' ? 'bg-primary' :
-                                                    s.status === 'Pending' ? 'bg-warning text-dark' :
-                                                        'bg-secondary'
+                                                    s.status === 'Follow Up' ? 'bg-info text-dark' :
+                                                        s.status === 'Pending' ? 'bg-warning text-dark' :
+                                                            'bg-secondary'
                                                 }`}>
                                                 {s.status || 'Pending'}
                                             </span>
+                                            {s.follow_up_date && (
+                                                <small className="text-secondary d-none d-md-inline ms-1" style={{ fontSize: '0.75rem' }}>
+                                                    <i className="bi bi-clock-history me-1"></i>
+                                                    {new Date(s.follow_up_date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </small>
+                                            )}
                                         </div>
                                     </td>
                                     {isAdmin && (
@@ -372,7 +381,20 @@ const Students = () => {
                                                     <option value="Pending">Pending</option>
                                                     <option value="In Progress">In Progress</option>
                                                     <option value="Completed">Completed</option>
+                                                    <option value="Follow Up">Follow Up</option>
                                                 </select>
+                                                {modal.data.status === 'Follow Up' && (
+                                                    <div className="mt-2">
+                                                        <label className="form-label small fw-bold mb-1">Follow Up Date & Time</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            className="form-control form-control-sm bg-light"
+                                                            value={modal.data.follow_up_date ? new Date(modal.data.follow_up_date).toISOString().slice(0, 16) : ''}
+                                                            onChange={(e) => setModal({ ...modal, data: { ...modal.data, follow_up_date: e.target.value } })}
+                                                            required
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

@@ -10,6 +10,7 @@ import SettingsOverview from './components/Settings/SettingsOverview';
 import EditProfilePage from './components/Settings/EditProfilePage';
 import Notification from './components/Notification/Notification';
 import Chat from './components/Chat/Chat';
+import FollowUps from './components/FollowUps/FollowUps';
 import './App.css';
 
 // Protected Route Component
@@ -57,6 +58,7 @@ function App() {
               </AdminRoute>
             } />
 
+            <Route path="follow-ups" element={<FollowUps />} />
             <Route path="notifications" element={<Notification />} />
 
             <Route path="dashboard" element={<div className="p-4"><h2>Dashboard (Coming Soon)</h2></div>} />

@@ -221,6 +221,7 @@ const Enquiries = () => {
                         <option value="" disabled>By Status</option>
                         <option value="Pending">Pending</option>
                         <option value="Connected">Connected</option>
+                        <option value="Follow Up">Follow Up</option>
                     </select>
                 </div>
             </div>
@@ -287,9 +288,18 @@ const Enquiries = () => {
                                     <td data-label="Status" className="col-status">
                                         <div className="d-flex align-items-center gap-2">
                                             <span className="status-label d-md-none text-secondary small">Status:</span>
-                                            <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${enquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                            <span style={{ fontSize: '0.85rem', padding: '0.4em 0.8em' }} className={`badge rounded-pill ${enquiry.status === 'Connected' ? 'bg-success' :
+                                                enquiry.status === 'Follow Up' ? 'bg-info text-dark' :
+                                                    'bg-warning text-dark'
+                                                }`}>
                                                 {enquiry.status || 'Pending'}
                                             </span>
+                                            {enquiry.follow_up_date && (
+                                                <small className="text-secondary d-none d-md-inline" style={{ fontSize: '0.75rem' }}>
+                                                    <i className="bi bi-clock-history me-1"></i>
+                                                    {new Date(enquiry.follow_up_date).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </small>
+                                            )}
                                         </div>
                                     </td>
                                     {isAdmin && (
@@ -429,18 +439,44 @@ const Enquiries = () => {
                                             <div className="col-6">
                                                 <label className="text-secondary small fw-bold">Status</label>
                                                 {isEditMode ? (
-                                                    <select
-                                                        className="form-select"
-                                                        value={selectedEnquiry.status || 'Pending'}
-                                                        onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, status: e.target.value })}
-                                                    >
-                                                        <option value="Pending">Pending</option>
-                                                        <option value="Connected">Connected</option>
-                                                    </select>
+                                                    <>
+                                                        <select
+                                                            className="form-select"
+                                                            value={selectedEnquiry.status || 'Pending'}
+                                                            onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, status: e.target.value })}
+                                                        >
+                                                            <option value="Pending">Pending</option>
+                                                            <option value="Connected">Connected</option>
+                                                            <option value="Follow Up">Follow Up</option>
+                                                        </select>
+                                                        {selectedEnquiry.status === 'Follow Up' && (
+                                                            <div className="mt-2">
+                                                                <label className="text-secondary small fw-bold mb-1">Follow Up Date & Time</label>
+                                                                <input
+                                                                    type="datetime-local"
+                                                                    className="form-control form-control-sm bg-light"
+                                                                    value={selectedEnquiry.follow_up_date ? new Date(selectedEnquiry.follow_up_date).toISOString().slice(0, 16) : ''}
+                                                                    onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, follow_up_date: e.target.value })}
+                                                                    required
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 ) : (
-                                                    <div className={`badge ${selectedEnquiry.status === 'Connected' ? 'bg-success' : 'bg-warning text-dark'}`}>
-                                                        {selectedEnquiry.status || 'Pending'}
-                                                    </div>
+                                                    <>
+                                                        <div className={`badge ${selectedEnquiry.status === 'Connected' ? 'bg-success' :
+                                                            selectedEnquiry.status === 'Follow Up' ? 'bg-info text-dark' :
+                                                                'bg-warning text-dark'
+                                                            }`}>
+                                                            {selectedEnquiry.status || 'Pending'}
+                                                        </div>
+                                                        {selectedEnquiry.status === 'Follow Up' && selectedEnquiry.follow_up_date && (
+                                                            <div className="mt-2 text-primary small">
+                                                                <i className="bi bi-calendar-event me-1"></i>
+                                                                {new Date(selectedEnquiry.follow_up_date).toLocaleString()}
+                                                            </div>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
