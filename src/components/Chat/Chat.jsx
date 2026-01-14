@@ -34,6 +34,10 @@ const Chat = () => {
     }, []);
 
     useEffect(() => {
+        // Reset message selection when switching chats
+        setIsMessageSelectionMode(false);
+        setSelectedMessageIds(new Set());
+
         let interval;
         if (selectedUser) {
             fetchMessages(selectedUser.id);
@@ -168,7 +172,8 @@ const Chat = () => {
     const handleDeleteSelectedMessages = () => {
         const canDeleteForEveryone = Array.from(selectedMessageIds).every(id => {
             const msg = messages.find(m => m.id === id);
-            return msg && parseInt(msg.sender) === parseInt(currentUserId);
+            // Can only delete for everyone if I sent it AND it's not already revoked
+            return msg && parseInt(msg.sender) === parseInt(currentUserId) && !msg.is_revoked && !msg.is_revoked_placeholder;
         });
 
         setDeleteContext({
