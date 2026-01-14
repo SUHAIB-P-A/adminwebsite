@@ -11,6 +11,7 @@ import EditProfilePage from './components/Settings/EditProfilePage';
 import Notification from './components/Notification/Notification';
 import Chat from './components/Chat/Chat';
 import FollowUps from './components/FollowUps/FollowUps';
+import Dashboard from './components/Dashboard/Dashboard';
 import './App.css';
 
 // Protected Route Component
@@ -61,7 +62,7 @@ function App() {
             <Route path="follow-ups" element={<FollowUps />} />
             <Route path="notifications" element={<Notification />} />
 
-            <Route path="dashboard" element={<div className="p-4"><h2>Dashboard (Coming Soon)</h2></div>} />
+            <Route path="dashboard" element={<Dashboard />} />
 
             {/* Settings Sub-Routes */}
             <Route path="settings" element={<Settings />}>
