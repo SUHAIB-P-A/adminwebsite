@@ -1,15 +1,16 @@
 /* Settings.css */
 
 .settings-page {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
     padding-bottom: 2rem;
 }
 
 .settings-title {
-    font-weight: 700;
+    font-weight: 800;
     color: var(--text-primary);
-    font-size: 1.8rem;
+    font-size: 2rem;
+    letter-spacing: -0.5px;
 }
 
 .section-title {
@@ -23,10 +24,11 @@
 
 .settings-card {
     border: none;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
     background-color: var(--card-bg);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
 }
 
 /* Account Section Styles */
@@ -44,9 +46,109 @@
 
 .role-badge {
     text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    font-weight: 700;
+    padding: 0.35em 0.8em;
+    border-radius: 30px;
+}
+
+/* Profile Image Enhanced */
+.profile-image-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto;
+}
+
+.profile-image-preview {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.profile-edit-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 46, 94, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.profile-image-container:hover .profile-edit-overlay {
+    opacity: 1;
+}
+
+.camera-icon-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 36px;
+    height: 36px;
+    background-color: #0f2e5e;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+    transition: transform 0.2s;
+}
+
+.profile-image-container:hover .camera-icon-badge {
+    transform: scale(1.1);
+}
+
+/* Form Styling */
+.form-label-custom {
+    font-size: 0.85rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.form-control-custom {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #2d3748;
+    background-color: #fff;
+    transition: all 0.2s ease;
+}
+
+.form-control-custom:focus {
+    border-color: #0f2e5e;
+    box-shadow: 0 0 0 3px rgba(15, 46, 94, 0.1);
+    outline: none;
+}
+
+.form-control-custom:disabled,
+.form-control-custom[readonly] {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #6c757d;
 }
 
 /* Toggle Switch Customization */
@@ -75,8 +177,6 @@
     cursor: pointer;
 }
 
-/* Dark Mode Specific Styles Removed */
-
 /* Animation */
 .fade-in {
     animation: fadeIn 0.5s ease-in-out;
@@ -101,12 +201,16 @@
         margin: 0.5rem;
     }
 
-    .profile-image-preview {
-        width: 80px !important;
-        height: 80px !important;
+    .profile-image-container {
+        width: 100px;
+        height: 100px;
     }
 
     .settings-page {
         padding: 0 1rem;
+    }
+
+    .settings-title {
+        font-size: 1.5rem;
     }
 }
