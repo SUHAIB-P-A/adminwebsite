@@ -112,23 +112,17 @@ const Chat = () => {
             // For now, React handles diffing well enough for small lists.
             setMessages(data);
 
-            // Mark unread messages as read
-            const unreadIds = data.filter(m => !m.is_read && parseInt(m.receiver) === parseInt(currentUserId)).map(m => m.id);
-            if (unreadIds.length > 0) {
-                // Fire and forget updates
-                Promise.all(unreadIds.map(id => axios.patch(`/api/chat/${id}/`, { is_read: true })));
+            // The backend already marks messages as read in the conversation endpoint
+            // via mark_as_read() call in views.py
 
-                // Dispatch event with count for optimistic update
-                const event = new CustomEvent('chatRead', { detail: { count: unreadIds.length } });
-                window.dispatchEvent(event);
-
-                // Optimistically update local user list to clear badge
+            // Optimistically update local user list to clear unread badge
+            if (data.some(m => !m.is_read && parseInt(m.receiver_id) === parseInt(currentUserId))) {
                 setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, unread_count: 0 } : u));
-            } else {
-                // Optimization: If no unread messages, maybe we don't need to refresh users immediately?
-                // But wait, if we received a NEW message while chat was open, fetchUsers() would be needed to show it on top/update timestamp?
-                // Actually, fetchUsers is called on mount. We should probably poll "users" endpoint too if we want real-time sorting updates.
-                // For now, let's keep it simple.
+
+                // Dispatch event for badge update
+                const unreadCount = data.filter(m => !m.is_read && parseInt(m.receiver_id) === parseInt(currentUserId)).length;
+                const event = new CustomEvent('chatRead', { detail: { count: unreadCount } });
+                window.dispatchEvent(event);
             }
         } catch (err) {
             console.error("Failed to fetch messages", err);
@@ -376,28 +370,23 @@ const Chat = () => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedUser) return;
 
+        const messageContent = newMessage;
         const payload = {
             sender: currentUserId,
             receiver: selectedUser.id,
-            content: newMessage,
+            content: messageContent,
             is_read: false
         };
 
-        // Optimistic UI update
-        const tempMsg = {
-            id: Date.now(), // temp id
-            sender: parseInt(currentUserId),
-            receiver: selectedUser.id,
-            content: newMessage,
-            timestamp: new Date().toISOString(),
-            is_read: false
-        };
-        setMessages([...messages, tempMsg]);
+        // Clear input immediately for better UX
         setNewMessage('');
 
         try {
-            await axios.post('/api/chat/', payload);
-            fetchMessages(selectedUser.id, true); // Sync correct data
+            // Send message and get the response with the real message data
+            const response = await axios.post('/api/chat/', payload);
+
+            // Add the real message from the server response immediately
+            setMessages(prev => [...prev, response.data]);
 
             // Move this user to top of list and update timestamp
             setUsers(prevUsers => {
@@ -407,7 +396,9 @@ const Chat = () => {
             });
         } catch (err) {
             console.error("Failed to send message", err);
-            // Optionally remove the optimistic message on failure
+            // Restore the message to input on failure
+            setNewMessage(messageContent);
+            alert("Failed to send message. Please try again.");
         }
     };
 
@@ -604,7 +595,7 @@ const Chat = () => {
                                                 const isSelected = selectedMessageIds.has(msg.id);
                                                 return (
                                                     <div
-                                                        key={index}
+                                                        key={msg.id}
                                                         className={`d-flex ${isMine ? 'justify-content-end' : 'justify-content-start'} ${isMessageSelectionMode ? 'cursor-pointer' : ''}`}
                                                         onClick={() => handleMessageClick(msg)}
                                                         onMouseDown={() => handleMessageLongPress(msg)}
