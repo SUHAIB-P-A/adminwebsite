@@ -10,6 +10,7 @@ const Chat = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loadingUsers, setLoadingUsers] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Message Selection State
     const [isMessageSelectionMode, setIsMessageSelectionMode] = useState(false);
@@ -65,8 +66,32 @@ const Chat = () => {
         if (!silent) setLoadingUsers(true);
         try {
             // exclude current user from the list
-            const { data } = await axios.get('/api/chat/users/', { params: { exclude_id: currentUserId } });
-            setUsers(data);
+            const params = { exclude_id: currentUserId };
+            if (silent) {
+                params.polling = 'true';
+            }
+            const { data } = await axios.get('/api/chat/users/', { params });
+
+            if (silent) {
+                // Merge data: Update existing users with new info, add new users, preserve images
+                setUsers(prevUsers => {
+                    const userMap = new Map(prevUsers.map(u => [u.id, u]));
+                    return data.map(newUser => {
+                        const existingUser = userMap.get(newUser.id);
+                        if (existingUser) {
+                            return {
+                                ...existingUser,
+                                ...newUser,
+                                // Preserve image if not in new data (which it won't be for polling)
+                                profile_image: newUser.profile_image || existingUser.profile_image
+                            };
+                        }
+                        return newUser;
+                    });
+                });
+            } else {
+                setUsers(data);
+            }
         } catch (err) {
             console.error("Failed to fetch chat users", err);
         }
@@ -434,7 +459,13 @@ const Chat = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <input type="text" className="form-control rounded-pill" placeholder="Search people..." />
+                                <input
+                                    type="text"
+                                    className="form-control rounded-pill"
+                                    placeholder="Search people..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
                             )}
                         </div>
                         <div className="flex-grow-1 overflow-auto custom-scrollbar">
@@ -444,7 +475,7 @@ const Chat = () => {
                                 <div className="text-center p-4 text-muted small">No active users found.</div>
                             ) : (
                                 <div className="list-group list-group-flush">
-                                    {users.map(u => (
+                                    {users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase())).map(u => (
                                         <div
                                             key={u.id}
                                             className={`list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center user-select-none ${selectedUser?.id === u.id && !isSelectionMode ? 'active bg-primary-subtle text-primary fw-bold' : ''} ${selectedChatIds.has(u.id) ? 'bg-primary-subtle' : ''}`}
