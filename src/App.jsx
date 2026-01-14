@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const role = localStorage.getItem('role');
   if (role !== 'admin' && role !== 'Admin') {
-    return <Navigate to="/portal/students" replace />;
+    return <Navigate to="/portal/dashboard" replace />;
   }
   return children;
 };
@@ -47,7 +47,7 @@ function App() {
               <AdminPanel />
             </ProtectedRoute>
           }>
-            <Route index element={<Navigate to="students" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="students" element={<Students />} />
             <Route path="enquiries" element={<Enquiries />} />
             <Route path="chat" element={<Chat />} />

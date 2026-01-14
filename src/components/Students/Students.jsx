@@ -142,8 +142,14 @@ const Students = () => {
         setModal({ type: 'view', data: student });
 
         // Optimistically mark as read so shading/N E W badge disappears immediately
+
+        // Optimistically mark as read so shading/N E W badge disappears immediately
         if (!student.is_read) {
-            setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_read: true } : s));
+            const now = new Date().toISOString();
+            const updatedStudent = { ...student, is_read: true, viewed_at: now };
+            setModal(prev => ({ ...prev, data: updatedStudent })); // Update modal data immediately
+            setStudents(prev => prev.map(s => s.id === student.id ? updatedStudent : s));
+
             try {
                 const staffId = localStorage.getItem('staff_id');
                 const role = localStorage.getItem('role');
@@ -152,7 +158,7 @@ const Students = () => {
                 await axios.put(`/api/submit/${student.id}/`, { ...student, is_read: true }, { params });
             } catch (err) {
                 // Revert optimistic change on failure
-                setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_read: false } : s));
+                setStudents(prev => prev.map(s => s.id === student.id ? { ...s, is_read: false, viewed_at: null } : s));
                 console.error('Failed to mark student as read', err);
                 showToast("Failed to mark student as read", "danger");
             }
@@ -324,12 +330,19 @@ const Students = () => {
                             <div className="modal-body">
                                 {modal.type === 'view' ? (
                                     <div className="row g-3">
-                                        {Object.entries(modal.data).map(([k, v]) => v && k !== 'plus_two_percentage' && (
-                                            <div className="col-6" key={k}>
-                                                <label className="text-secondary small text-capitalize">{k.replace(/_/g, ' ')}</label>
-                                                <div className="fw-medium">{v}</div>
-                                            </div>
-                                        ))}
+                                        {Object.entries(modal.data).map(([k, v]) => {
+                                            if (!v || k === 'plus_two_percentage' || k === 'extra_data') return null;
+                                            let displayValue = v;
+                                            if (['created_at', 'viewed_at', 'follow_up_date'].includes(k)) {
+                                                displayValue = new Date(v).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                            }
+                                            return (
+                                                <div className="col-6" key={k}>
+                                                    <label className="text-secondary small text-capitalize">{k.replace(/_/g, ' ')}</label>
+                                                    <div className="fw-medium text-break">{displayValue}</div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 ) : (
                                     <form onSubmit={(e) => {

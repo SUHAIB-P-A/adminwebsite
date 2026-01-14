@@ -77,7 +77,7 @@ const Login = () => {
                 localStorage.setItem(profileKey, JSON.stringify(profileToSave));
             } catch (e) { /* ignore */ }
 
-            navigate('/portal/students');
+            navigate('/portal/dashboard');
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed. Please check credentials.');
         }

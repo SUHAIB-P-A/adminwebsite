@@ -112,9 +112,18 @@ const Enquiries = () => {
         setShowModal(true);
 
         // Optimistically mark as read if not already, update server in background and revert on error
+        // Optimistically mark as read if not already, update server in background and revert on error
         if (!enquiry.is_read) {
             // Optimistic UI update so shading disappears immediately
-            setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, is_read: true } : e));
+            const now = new Date().toISOString();
+            const updatedEnquiry = { ...enquiry, is_read: true, viewed_at: now };
+
+            // If viewing details, update the selected enquiry state to show timestamp immediately
+            if (!editMode) {
+                setSelectedEnquiry(updatedEnquiry);
+            }
+
+            setEnquiries(prev => prev.map(e => e.id === enquiry.id ? updatedEnquiry : e));
             try {
                 const staffId = localStorage.getItem('staff_id');
                 const role = localStorage.getItem('role');
@@ -123,7 +132,7 @@ const Enquiries = () => {
                 await axios.put(`/api/enquiries/${enquiry.id}/`, { ...enquiry, is_read: true }, { params });
             } catch (err) {
                 // Revert optimistic change on failure
-                setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, is_read: false } : e));
+                setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, is_read: false, viewed_at: null } : e));
                 console.error("Failed to mark as read", err);
                 showToast("Failed to mark enquiry as read", "danger");
             }
@@ -478,6 +487,14 @@ const Enquiries = () => {
                                                         )}
                                                     </>
                                                 )}
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="text-secondary small fw-bold">Created At</label>
+                                                <div className="fw-medium small">{new Date(selectedEnquiry.created_at).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                            </div>
+                                            <div className="col-6">
+                                                <label className="text-secondary small fw-bold">Viewed At</label>
+                                                <div className="fw-medium small">{selectedEnquiry.viewed_at ? new Date(selectedEnquiry.viewed_at).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : <span className="text-muted">Not viewed yet</span>}</div>
                                             </div>
                                         </div>
                                     </div>
