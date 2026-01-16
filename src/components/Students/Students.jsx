@@ -37,6 +37,7 @@ const Students = () => {
     const [staffList, setStaffList] = useState([]);
     const [filter, setFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('Pending');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Role check: hide Assigned Staff column for non-admin users
     const role = localStorage.getItem('role');
@@ -206,9 +207,48 @@ const Students = () => {
         };
 
         let inputElem;
-        if (f.type === 'select') inputElem = <select {...props} className={`form-select ${hasError ? 'is-invalid' : ''}`}><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
-        else if (f.type === 'textarea') inputElem = <textarea {...props} rows="2" />;
-        else inputElem = <input {...props} type={f.type || 'text'} />;
+
+        // Special handling for phone number with +91 prefix
+        if (f.name === 'phone_number') {
+            inputElem = (
+                <div className="input-group">
+                    <span className="input-group-text bg-light">+91</span>
+                    <input
+                        {...props}
+                        type="tel"
+                        maxLength={10}
+                        pattern="[0-9]{10}"
+                        placeholder="10-digit mobile number"
+                        onInput={(e) => {
+                            // Allow only numbers
+                            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                        }}
+                    />
+                </div>
+            );
+        } else if (f.name === 'dob' && f.type === 'date') {
+            // Special handling for Date of Birth - only allow past dates
+            const today = new Date().toISOString().split('T')[0];
+            const minDate = new Date();
+            minDate.setFullYear(minDate.getFullYear() - 100); // Max 100 years old
+            const minDateStr = minDate.toISOString().split('T')[0];
+
+            inputElem = (
+                <input
+                    {...props}
+                    type="date"
+                    max={today}
+                    min={minDateStr}
+                    placeholder="Select date of birth"
+                />
+            );
+        } else if (f.type === 'select') {
+            inputElem = <select {...props} className={`form-select ${hasError ? 'is-invalid' : ''}`}><option value="">Select {f.label}</option>{f.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
+        } else if (f.type === 'textarea') {
+            inputElem = <textarea {...props} rows="2" />;
+        } else {
+            inputElem = <input {...props} type={f.type || 'text'} />;
+        }
 
         return (
             <>
@@ -219,6 +259,14 @@ const Students = () => {
     };
 
     const filteredStudents = students.filter(s => {
+        // Search filter by name
+        if (searchQuery.trim()) {
+            const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+            const query = searchQuery.toLowerCase().trim();
+            if (!fullName.includes(query)) return false;
+        }
+
+        // Status filters
         const normStatus = (s.status || 'Pending').toString().trim().toLowerCase();
         const target = statusFilter ? statusFilter.toString().trim().toLowerCase() : '';
         if (filter === 'unread') return !s.is_read;
@@ -234,7 +282,31 @@ const Students = () => {
             </div>
 
             <div className="d-flex justify-content-between align-items-center mb-3 px-1 controls-row">
-                <div className="d-flex gap-2">
+                <div className="d-flex gap-2 flex-wrap align-items-center">
+                    {/* Search Field */}
+                    <div className="position-relative" style={{ minWidth: '250px' }}>
+                        <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                        <input
+                            type="text"
+                            className="form-control form-control-sm rounded-pill ps-5"
+                            placeholder="Search by name..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{ paddingRight: searchQuery ? '2.5rem' : '1rem' }}
+                        />
+                        {searchQuery && (
+                            <button
+                                className="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-2 p-0"
+                                onClick={() => setSearchQuery('')}
+                                style={{ background: 'transparent', border: 'none', width: '20px', height: '20px' }}
+                                title="Clear search"
+                            >
+                                <i className="bi bi-x-circle-fill text-secondary"></i>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Filters */}
                     <button className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('all')}>All</button>
                     <button className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('unread')}>Unread</button>
                     <select className={`form-select form-select-sm rounded-pill px-3 ${filter === 'status' ? 'bg-dark text-white border-dark' : 'text-dark'}`} style={{ width: 'auto', minWidth: '130px', cursor: 'pointer' }} value={filter === 'status' ? statusFilter : ''} onChange={(e) => { const val = e.target.value; if (val) { setFilter('status'); setStatusFilter(val); } }}>
