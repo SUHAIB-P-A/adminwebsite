@@ -38,6 +38,7 @@ const Students = () => {
     const [filter, setFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('Pending');
     const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('active'); // 'active' or 'completed'
 
     // Role check: hide Assigned Staff column for non-admin users
     const role = localStorage.getItem('role');
@@ -259,6 +260,15 @@ const Students = () => {
     };
 
     const filteredStudents = students.filter(s => {
+        // Tab-based filtering: separate active from completed
+        if (activeTab === 'active') {
+            // Active tab: exclude completed students
+            if (s.status === 'Completed') return false;
+        } else if (activeTab === 'completed') {
+            // Completed tab: only show completed students
+            if (s.status !== 'Completed') return false;
+        }
+
         // Search filter by name
         if (searchQuery.trim()) {
             const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
@@ -266,11 +276,15 @@ const Students = () => {
             if (!fullName.includes(query)) return false;
         }
 
-        // Status filters
-        const normStatus = (s.status || 'Pending').toString().trim().toLowerCase();
-        const target = statusFilter ? statusFilter.toString().trim().toLowerCase() : '';
-        if (filter === 'unread') return !s.is_read;
-        if (filter === 'status') return target ? normStatus === target : true;
+        // Status filters (only apply on active tab)
+        if (activeTab === 'active') {
+            const normStatus = (s.status || 'Pending').toString().trim().toLowerCase();
+            const target = statusFilter ? statusFilter.toString().trim().toLowerCase() : '';
+            if (filter === 'unread') return !s.is_read;
+            if (filter === 'status') return target ? normStatus === target : true;
+        }
+        // Completed tab: no additional filters needed
+
         return true;
     });
 
@@ -279,6 +293,40 @@ const Students = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h1 className="page-title mb-0">Student-forms</h1>
 
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="mb-3">
+                <div className="btn-group" role="group">
+                    <button
+                        className={`btn ${activeTab === 'active' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => {
+                            setActiveTab('active');
+                            setFilter('all');
+                            setSearchQuery('');
+                        }}
+                    >
+                        <i className="bi bi-hourglass-split me-2"></i>
+                        Active Students
+                        <span className={`badge ms-2 ${activeTab === 'active' ? 'bg-white text-primary' : 'bg-primary text-white'}`}>
+                            {students.filter(s => s.status !== 'Completed').length}
+                        </span>
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'completed' ? 'btn-success' : 'btn-outline-success'}`}
+                        onClick={() => {
+                            setActiveTab('completed');
+                            setFilter('all');
+                            setSearchQuery('');
+                        }}
+                    >
+                        <i className="bi bi-check-circle me-2"></i>
+                        Completed
+                        <span className={`badge ms-2 ${activeTab === 'completed' ? 'bg-white text-success' : 'bg-success text-white'}`}>
+                            {students.filter(s => s.status === 'Completed').length}
+                        </span>
+                    </button>
+                </div>
             </div>
 
             <div className="d-flex justify-content-between align-items-center mb-3 px-1 controls-row">
@@ -306,16 +354,21 @@ const Students = () => {
                         )}
                     </div>
 
-                    {/* Filters */}
-                    <button className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('all')}>All</button>
-                    <button className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('unread')}>Unread</button>
-                    <select className={`form-select form-select-sm rounded-pill px-3 ${filter === 'status' ? 'bg-dark text-white border-dark' : 'text-dark'}`} style={{ width: 'auto', minWidth: '130px', cursor: 'pointer' }} value={filter === 'status' ? statusFilter : ''} onChange={(e) => { const val = e.target.value; if (val) { setFilter('status'); setStatusFilter(val); } }}>
-                        <option value="" disabled>By Status</option>
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Follow Up">Follow Up</option>
-                    </select>
+
+                    {/* Filters - conditional based on tab */}
+                    {activeTab === 'active' ? (
+                        <>
+                            <button className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('all')}>All</button>
+                            <button className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`} onClick={() => setFilter('unread')}>Unread</button>
+                            <select className={`form-select form-select-sm rounded-pill px-3 ${filter === 'status' ? 'bg-dark text-white border-dark' : 'text-dark'}`} style={{ width: 'auto', minWidth: '130px', cursor: 'pointer' }} value={filter === 'status' ? statusFilter : ''} onChange={(e) => { const val = e.target.value; if (val) { setFilter('status'); setStatusFilter(val); } }}>
+                                <option value="" disabled>By Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Follow Up">Follow Up</option>
+                            </select>
+                        </>
+                    ) : null}
                 </div>
                 <button className="btn btn-primary rounded-pill px-4" onClick={() => setModal({ type: 'add', data: {} })}>
                     <i className="bi bi-plus-lg me-2"></i> Add Student
