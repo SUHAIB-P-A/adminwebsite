@@ -245,20 +245,57 @@ const StaffManagement = () => {
 
     const handleDelete = (id = null) => {
         const isBulk = id === 'bulk';
-        const count = isBulk ? selection.ids.length : 1;
-        setModal({ type: 'delete_confirm', data: { id, count, isBulk } });
+        if (isBulk) {
+            setModal({ type: 'delete_confirm', data: { id, count: selection.ids.length, isBulk } });
+        } else {
+            // Get staff details for single delete
+            const staff = staffList.find(s => s.id === id);
+            setModal({ type: 'delete_confirm', data: { id, staff, count: 1, isBulk } });
+        }
     };
 
     const confirmDelete = async () => {
         const { id, isBulk } = modal.data;
         try {
+            let deletionSummary = [];
+
             if (isBulk) {
-                await Promise.all(selection.ids.map(staffId => axios.delete(`/api/staff/${staffId}/`)));
+                const responses = await Promise.all(
+                    selection.ids.map(staffId => axios.delete(`/api/staff/${staffId}/`))
+                );
+                // Aggregate results
+                const totalStudents = responses.reduce((sum, r) => sum + (r.data?.details?.students_reassigned || 0), 0);
+                const totalEnquiries = responses.reduce((sum, r) => sum + (r.data?.details?.enquiries_reassigned || 0), 0);
+                const totalDocs = responses.reduce((sum, r) => sum + (r.data?.details?.documents_deleted || 0), 0);
+
+                deletionSummary = [
+                    `${selection.ids.length} staff members deleted`,
+                    totalStudents > 0 ? `${totalStudents} students reassigned` : null,
+                    totalEnquiries > 0 ? `${totalEnquiries} enquiries reassigned` : null,
+                    totalDocs > 0 ? `${totalDocs} documents removed` : null
+                ].filter(Boolean);
+
                 setSelection({ active: false, ids: [] });
             } else {
-                await axios.delete(`/api/staff/${id}/`);
+                const response = await axios.delete(`/api/staff/${id}/`);
+                const details = response.data?.details || {};
+
+                deletionSummary = [
+                    "Staff deleted successfully",
+                    details.students_reassigned > 0 ? `${details.students_reassigned} students reassigned` : null,
+                    details.enquiries_reassigned > 0 ? `${details.enquiries_reassigned} enquiries reassigned` : null,
+                    details.documents_deleted > 0 ? `${details.documents_deleted} documents removed` : null,
+                    details.files_cleaned > 0 ? `${details.files_cleaned} files cleaned from storage` : null
+                ].filter(Boolean);
             }
-            setModal({ type: 'success', data: { message: "Staff deleted and workload redistributed successfully." } });
+
+            setModal({
+                type: 'success',
+                data: {
+                    message: deletionSummary.join(' • '),
+                    title: isBulk ? 'Bulk Deletion Complete' : 'Staff Deleted'
+                }
+            });
             fetchStaff();
         } catch (err) {
             showToast("Delete failed", "danger");
@@ -1101,7 +1138,7 @@ const StaffManagement = () => {
                                         <i className="bi bi-check-lg" style={{ fontSize: '2rem' }}></i>
                                     </div>
                                 </div>
-                                <h5 className="fw-bold mb-2">Success!</h5>
+                                <h5 className="fw-bold mb-2">{modal.data?.title || 'Success!'}</h5>
                                 <p className="text-muted mb-4">{modal.data?.message || 'Operation completed successfully.'}</p>
                                 <button className="btn btn-success rounded-pill px-4 w-100" onClick={() => setModal({ type: null })}>OK</button>
                             </div>
@@ -1123,10 +1160,23 @@ const StaffManagement = () => {
                                         </div>
                                     </div>
                                     <h5 className="fw-bold mb-2">Delete Confirmation</h5>
-                                    <p className="text-muted mb-4">
+                                    <p className="text-muted mb-3">
                                         Are you sure you want to delete {modal.data.count > 1 ? `${modal.data.count} staff members` : 'this staff member'}?
-                                        <br />
-                                        <span className="small text-danger fw-bold">This action will redistribute assigned students and cannot be undone.</span>
+                                    </p>
+
+                                    {/* Show assignment details for single delete */}
+                                    {!modal.data.isBulk && modal.data.staff && (
+                                        <div className="alert alert-warning text-start py-2 mb-3">
+                                            <small className="d-block mb-1"><strong>{modal.data.staff.name}</strong> currently has:</small>
+                                            <small className="d-block">• {modal.data.staff.student_count || 0} assigned students/enquiries</small>
+                                            {modal.data.staff.student_count > 0 && (
+                                                <small className="d-block text-muted fst-italic mt-1">These will be redistributed to other staff members</small>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <p className="small text-danger fw-bold mb-4">
+                                        ⚠️ This action cannot be undone
                                     </p>
                                     <div className="d-flex gap-2 justify-content-center">
                                         <button className="btn btn-light rounded-pill px-4" onClick={() => setModal({ type: null })}>Cancel</button>
