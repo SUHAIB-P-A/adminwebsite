@@ -141,9 +141,7 @@ const Students = () => {
 
         setModal({ type: 'view', data: student });
 
-        // Optimistically mark as read so shading/N E W badge disappears immediately
-
-        // Optimistically mark as read so shading/N E W badge disappears immediately
+        // Optimistically mark as read so shading/NEW badge disappears immediately
         if (!student.is_read) {
             const now = new Date().toISOString();
             const updatedStudent = { ...student, is_read: true, viewed_at: now };
@@ -165,12 +163,34 @@ const Students = () => {
         }
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         const isBulk = modal.data?.type === 'bulk';
-        const url = (id) => `/api/submit/${id}/`;
-        isBulk
-            ? Promise.all(selection.ids.map(id => axios.delete(url(id)))).then(() => { showToast("Deleted successfully"); fetchStudents(); setSelection({ active: false, ids: [] }); setModal({ type: null }); })
-            : handleAction('delete', url(modal.data.id), null, "Student deleted");
+        try {
+            if (isBulk) {
+                await Promise.all(selection.ids.map(id => axios.delete(`/api/submit/${id}/`)));
+                setModal({
+                    type: 'success',
+                    data: {
+                        message: `Successfully deleted ${selection.ids.length} student record${selection.ids.length > 1 ? 's' : ''} from database`,
+                        title: 'Bulk Deletion Complete'
+                    }
+                });
+                setSelection({ active: false, ids: [] });
+            } else {
+                await axios.delete(`/api/submit/${modal.data.id}/`);
+                setModal({
+                    type: 'success',
+                    data: {
+                        message: 'Student record permanently deleted from database',
+                        title: 'Student Deleted'
+                    }
+                });
+            }
+            fetchStudents();
+        } catch (err) {
+            showToast("Delete failed", "danger");
+            setModal({ type: null });
+        }
     };
 
     const renderInput = (f, val, handler) => {
@@ -312,7 +332,6 @@ const Students = () => {
             {selection.active && (
                 <div className="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-dark text-white p-3 rounded-pill shadow-lg d-flex gap-3" style={{ zIndex: 1050 }}>
                     <span className="fw-bold">{selection.ids.length} Selected</span>
-                    {/* Hide Bulk Delete for Staff to prevent accidents, or allow if they really want? Prompt says they can delete assigned. keeping safe. */}
                     <button className="btn btn-danger btn-sm rounded-pill" onClick={() => setModal({ type: 'delete', data: { type: 'bulk' } })}>Delete</button>
                     <button className="btn btn-secondary btn-sm rounded-pill" onClick={() => setSelection({ active: false, ids: [] })}>Cancel</button>
                 </div>
@@ -427,7 +446,15 @@ const Students = () => {
                         <div className="modal-content text-center p-3">
                             <i className="bi bi-exclamation-circle text-danger display-4"></i>
                             <h5 className="fw-bold">Confirm Delete</h5>
-                            <p className="small text-muted">This action is permanent.</p>
+                            <p className="text-muted mb-2">
+                                {modal.data?.type === 'bulk'
+                                    ? `Delete ${selection.ids.length} student record${selection.ids.length > 1 ? 's' : ''}?`
+                                    : 'Delete this student record?'
+                                }
+                            </p>
+                            <p className="small text-danger fw-bold mb-3">
+                                ⚠️ This will permanently remove the data from database and cannot be undone
+                            </p>
                             <div className="d-flex gap-2 justify-content-center">
                                 <button className="btn btn-light rounded-pill" onClick={() => setModal({ type: null })}>Cancel</button>
                                 <button className="btn btn-danger rounded-pill px-4" onClick={confirmDelete}>Delete</button>
@@ -447,7 +474,7 @@ const Students = () => {
                                     <i className="bi bi-check-lg" style={{ fontSize: '2rem' }}></i>
                                 </div>
                             </div>
-                            <h5 className="fw-bold mb-2">Success!</h5>
+                            <h5 className="fw-bold mb-2">{modal.data?.title || 'Success!'}</h5>
                             <p className="text-muted mb-4">{modal.data?.message || 'Operation completed successfully.'}</p>
                             <button className="btn btn-success rounded-pill px-4 w-100" onClick={() => setModal({ type: null })}>OK</button>
                         </div>
