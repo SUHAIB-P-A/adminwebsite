@@ -364,8 +364,6 @@ const Students = () => {
                                 <option value="" disabled>By Status</option>
                                 <option value="Pending">Pending</option>
                                 <option value="In Progress">In Progress</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Follow Up">Follow Up</option>
                             </select>
                         </>
                     ) : null}
@@ -547,6 +545,7 @@ const Students = () => {
                                                             type="datetime-local"
                                                             className="form-control form-control-sm bg-light"
                                                             value={modal.data.follow_up_date ? new Date(modal.data.follow_up_date).toISOString().slice(0, 16) : ''}
+                                                            min={new Date().toISOString().slice(0, 16)}
                                                             onChange={(e) => setModal({ ...modal, data: { ...modal.data, follow_up_date: e.target.value } })}
                                                             required
                                                         />

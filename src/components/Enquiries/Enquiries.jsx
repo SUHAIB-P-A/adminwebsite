@@ -11,6 +11,8 @@ const Enquiries = () => {
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
     const [selection, setSelection] = useState({ active: false, ids: [] });
     const [isEditMode, setIsEditMode] = useState(false);
+    const [deleteModal, setDeleteModal] = useState({ show: false, data: null });
+    const [successModal, setSuccessModal] = useState({ show: false, data: null });
     const longPressTimer = useRef(null);
     const longPressTriggered = useRef(false);
 
@@ -20,6 +22,7 @@ const Enquiries = () => {
 
     const [filter, setFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('Pending');
+    const [activeTab, setActiveTab] = useState('active'); // 'active' or 'connected'
 
     // Fetch Enquiries and Staff (if Admin)
     useEffect(() => {
@@ -112,7 +115,6 @@ const Enquiries = () => {
         setShowModal(true);
 
         // Optimistically mark as read if not already, update server in background and revert on error
-        // Optimistically mark as read if not already, update server in background and revert on error
         if (!enquiry.is_read) {
             // Optimistic UI update so shading disappears immediately
             const now = new Date().toISOString();
@@ -146,30 +148,55 @@ const Enquiries = () => {
         setIsEditMode(false);
     };
 
-    // Handle Delete
-    const handleDelete = async (id) => {
+    // Handle Delete - Show confirmation modal
+    const handleDelete = (id) => {
         const isBulk = id === 'bulk';
-        const count = isBulk ? selection.ids.length : 1;
-
-        if (window.confirm(`Are you sure you want to delete ${count} enquiry(s)?`)) {
-            try {
-                const staffId = localStorage.getItem('staff_id');
-                const role = localStorage.getItem('role');
-                const params = (role !== 'admin' && role !== 'Admin' && staffId) ? { staff_id: staffId } : {};
-
-                if (isBulk) {
-                    await Promise.all(selection.ids.map(eid => axios.delete(`/api/enquiries/${eid}/`, { params })));
-                    showToast("Selected enquiries deleted successfully");
-                    setSelection({ active: false, ids: [] });
-                } else {
-                    await axios.delete(`/api/enquiries/${id}/`, { params });
-                    showToast("Enquiry deleted successfully");
-                }
-                fetchEnquiries();
-            } catch (error) {
-                console.error("Error deleting enquiry:", error);
-                showToast("Failed to delete enquiry", "danger");
+        setDeleteModal({
+            show: true,
+            data: {
+                id,
+                isBulk,
+                count: isBulk ? selection.ids.length : 1
             }
+        });
+    };
+
+    // Confirm Delete - Actually delete from database
+    const confirmDelete = async () => {
+        const { id, isBulk } = deleteModal.data;
+        try {
+            const staffId = localStorage.getItem('staff_id');
+            const role = localStorage.getItem('role');
+            const params = (role !== 'admin' && role !== 'Admin' && staffId) ? { staff_id: staffId } : {};
+
+            let deletionSummary = [];
+
+            if (isBulk) {
+                await Promise.all(selection.ids.map(eid => axios.delete(`/api/enquiries/${eid}/`, { params })));
+                deletionSummary = [
+                    `Successfully deleted ${selection.ids.length} enquiry record${selection.ids.length > 1 ? 's' : ''} from database`
+                ];
+                setSelection({ active: false, ids: [] });
+            } else {
+                await axios.delete(`/api/enquiries/${id}/`, { params });
+                deletionSummary = [
+                    'Enquiry record permanently deleted from database'
+                ];
+            }
+
+            setDeleteModal({ show: false, data: null });
+            setSuccessModal({
+                show: true,
+                data: {
+                    title: isBulk ? 'Bulk Deletion Complete' : 'Enquiry Deleted',
+                    message: deletionSummary.join(' • ')
+                }
+            });
+            fetchEnquiries();
+        } catch (error) {
+            console.error("Error deleting enquiry:", error);
+            showToast("Delete failed", "danger");
+            setDeleteModal({ show: false, data: null });
         }
     };
 
@@ -195,8 +222,19 @@ const Enquiries = () => {
 
     // Filter Logic
     const filteredEnquiries = enquiries.filter(enq => {
-        if (filter === 'unread') return !enq.is_read;
-        if (filter === 'status') return statusFilter ? enq.status === statusFilter : true;
+        // Tab-based filtering: separate active from connected
+        if (activeTab === 'active') {
+            if (enq.status === 'Connected') return false;
+        } else if (activeTab === 'connected') {
+            if (enq.status !== 'Connected') return false;
+        }
+
+        // Status filters (only on active tab)
+        if (activeTab === 'active') {
+            if (filter === 'unread') return !enq.is_read;
+            if (filter === 'status') return statusFilter ? enq.status === statusFilter : true;
+        }
+
         return true;
     });
 
@@ -204,35 +242,68 @@ const Enquiries = () => {
         <div className="p-4 page-anime">
             <h1 className="page-title">Enquiries</h1>
 
-            {/* Sorting/Filtering Controls */}
-            <div className="d-flex justify-content-between align-items-center mb-3 px-1 controls-row">
-                <div className="d-flex gap-2">
+            {/* Tab Navigation */}
+            <div className="mb-3">
+                <div className="btn-group" role="group">
                     <button
-                        className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`}
-                        onClick={() => setFilter('all')}
-                    >All</button>
-                    <button
-                        className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`}
-                        onClick={() => setFilter('unread')}
-                    >Unread</button>
-                    <select
-                        className={`form-select form-select-sm rounded-pill px-3 ${filter === 'status' ? 'bg-dark text-white border-dark' : 'text-dark'}`}
-                        style={{ width: 'auto', minWidth: '130px', cursor: 'pointer' }}
-                        value={filter === 'status' ? statusFilter : ''}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            if (val) {
-                                setFilter('status');
-                                setStatusFilter(val);
-                            }
+                        className={`btn ${activeTab === 'active' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => {
+                            setActiveTab('active');
+                            setFilter('all');
                         }}
                     >
-                        <option value="" disabled>By Status</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Connected">Connected</option>
-                        <option value="Follow Up">Follow Up</option>
-                    </select>
+                        <i className="bi bi-hourglass-split me-2"></i>
+                        Active Enquiries
+                        <span className={`badge ms-2 ${activeTab === 'active' ? 'bg-white text-primary' : 'bg-primary text-white'}`}>
+                            {enquiries.filter(e => e.status !== 'Connected').length}
+                        </span>
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'connected' ? 'btn-success' : 'btn-outline-success'}`}
+                        onClick={() => {
+                            setActiveTab('connected');
+                            setFilter('all');
+                        }}
+                    >
+                        <i className="bi bi-check-circle me-2"></i>
+                        Connected
+                        <span className={`badge ms-2 ${activeTab === 'connected' ? 'bg-white text-success' : 'bg-success text-white'}`}>
+                            {enquiries.filter(e => e.status === 'Connected').length}
+                        </span>
+                    </button>
                 </div>
+            </div>
+
+            {/* Sorting/Filtering Controls */}
+            <div className="d-flex justify-content-between align-items-center mb-3 px-1 controls-row">
+                {activeTab === 'active' ? (
+                    <div className="d-flex gap-2">
+                        <button
+                            className={`btn btn-sm rounded-pill px-3 ${filter === 'all' ? 'btn-dark' : 'btn-outline-dark'}`}
+                            onClick={() => setFilter('all')}
+                        >All</button>
+                        <button
+                            className={`btn btn-sm rounded-pill px-3 ${filter === 'unread' ? 'btn-dark' : 'btn-outline-dark'}`}
+                            onClick={() => setFilter('unread')}
+                        >Unread</button>
+                        <select
+                            className={`form-select form-select-sm rounded-pill px-3 ${filter === 'status' ? 'bg-dark text-white border-dark' : 'text-dark'}`}
+                            style={{ width: 'auto', minWidth: '130px', cursor: 'pointer' }}
+                            value={filter === 'status' ? statusFilter : ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) {
+                                    setFilter('status');
+                                    setStatusFilter(val);
+                                }
+                            }}
+                        >
+                            <option value="" disabled>By Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Follow Up">Follow Up</option>
+                        </select>
+                    </div>
+                ) : null}
             </div>
 
             <div className="custom-card p-0 bg-white rounded shadow-sm overflow-hidden">
@@ -465,6 +536,7 @@ const Enquiries = () => {
                                                                     type="datetime-local"
                                                                     className="form-control form-control-sm bg-light"
                                                                     value={selectedEnquiry.follow_up_date ? new Date(selectedEnquiry.follow_up_date).toISOString().slice(0, 16) : ''}
+                                                                    min={new Date().toISOString().slice(0, 16)}
                                                                     onChange={(e) => setSelectedEnquiry({ ...selectedEnquiry, follow_up_date: e.target.value })}
                                                                     required
                                                                 />
@@ -546,6 +618,49 @@ const Enquiries = () => {
                                     </div>
                                 </form>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteModal.show && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-sm modal-dialog-centered">
+                        <div className="modal-content text-center p-3">
+                            <i className="bi bi-exclamation-circle text-danger display-4"></i>
+                            <h5 className="fw-bold">Confirm Delete</h5>
+                            <p className="text-muted mb-2">
+                                {deleteModal.data?.isBulk
+                                    ? `Delete ${deleteModal.data.count} enquiry record${deleteModal.data.count > 1 ? 's' : ''}?`
+                                    : 'Delete this enquiry record?'
+                                }
+                            </p>
+                            <p className="small text-danger fw-bold mb-3">
+                                ⚠️ This will permanently remove the data from database and cannot be undone
+                            </p>
+                            <div className="d-flex gap-2 justify-content-center">
+                                <button className="btn btn-light rounded-pill" onClick={() => setDeleteModal({ show: false, data: null })}>Cancel</button>
+                                <button className="btn btn-danger rounded-pill px-4" onClick={confirmDelete}>Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
+            {successModal.show && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-sm modal-dialog-centered">
+                        <div className="modal-content text-center p-4 border-0 shadow-lg" style={{ borderRadius: '15px' }}>
+                            <div className="mb-3">
+                                <div className="mx-auto bg-success text-white d-flex align-items-center justify-content-center rounded-circle" style={{ width: '60px', height: '60px' }}>
+                                    <i className="bi bi-check-lg" style={{ fontSize: '2rem' }}></i>
+                                </div>
+                            </div>
+                            <h5 className="fw-bold mb-2">{successModal.data?.title || 'Success!'}</h5>
+                            <p className="text-muted mb-4">{successModal.data?.message || 'Operation completed successfully.'}</p>
+                            <button className="btn btn-success rounded-pill px-4 w-100" onClick={() => setSuccessModal({ show: false, data: null })}>OK</button>
                         </div>
                     </div>
                 </div>
