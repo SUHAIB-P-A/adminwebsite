@@ -16,7 +16,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const userName = localStorage.getItem('user_name') || 'Admin';
+    const userName = localStorage.getItem('staff_name') || 'Admin';
 
     useEffect(() => {
         const fetchDashboardData = async () => {

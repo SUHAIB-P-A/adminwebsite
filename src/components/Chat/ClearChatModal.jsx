@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 const ClearChatModal = ({ show, onHide, onClear, title, description, canDeleteForEveryone }) => {
     if (!show) return null;
@@ -45,6 +46,15 @@ const ClearChatModal = ({ show, onHide, onClear, title, description, canDeleteFo
             <div className="modal-backdrop fade show"></div>
         </>
     );
+};
+
+ClearChatModal.propTypes = {
+    show: PropTypes.bool.isRequired,
+    onHide: PropTypes.func.isRequired,
+    onClear: PropTypes.func.isRequired,
+    title: PropTypes.string,
+    description: PropTypes.string,
+    canDeleteForEveryone: PropTypes.bool,
 };
 
 export default ClearChatModal;

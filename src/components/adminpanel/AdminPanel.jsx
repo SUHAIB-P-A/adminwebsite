@@ -86,7 +86,7 @@ const AdminPanel = () => {
         };
 
         fetchChatCount();
-        const interval = setInterval(fetchChatCount, 5000); // Poll more frequently for chat (5s)
+        const interval = setInterval(fetchChatCount, 20000); // Poll every 20s (optimized from 5s)
 
         const handleChatRead = (e) => {
             // Optimistic update

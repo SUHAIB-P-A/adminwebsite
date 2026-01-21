@@ -77,6 +77,21 @@ const StaffManagement = () => {
         );
     };
 
+    const showToast = (msg, type = 'success') => {
+        setToast({ show: true, msg, type });
+        setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 3000);
+    };
+
+    const fetchStaff = async () => {
+        try {
+            const { data } = await axios.get('/api/staff/');
+            setStaffList(data);
+        } catch (err) {
+            showToast("Failed to load staff", "danger");
+        }
+        setLoading(false);
+    };
+
     useEffect(() => {
         fetchStaff();
     }, []);
@@ -92,21 +107,6 @@ const StaffManagement = () => {
             document.body.style.overflow = 'unset';
         };
     }, [modal.type, studentModal.type]);
-
-    const showToast = (msg, type = 'success') => {
-        setToast({ show: true, msg, type });
-        setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 3000);
-    };
-
-    const fetchStaff = async () => {
-        try {
-            const { data } = await axios.get('/api/staff/');
-            setStaffList(data);
-        } catch (err) {
-            showToast("Failed to load staff", "danger");
-        }
-        setLoading(false);
-    };
 
     const fetchDocuments = async (staffId) => {
         try {

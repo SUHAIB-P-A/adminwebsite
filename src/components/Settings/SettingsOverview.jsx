@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 
 const SettingsOverview = () => {
@@ -49,43 +50,59 @@ const SettingsOverview = () => {
                     <div className="card-body">
                         <div className="setting-item d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h6 className="mb-0">Email Notifications</h6>
-                                <small className="text-muted">Receive updates via email</small>
+                                <h6 className="mb-0">Chat Notifications</h6>
+                                <small className="text-muted">Receive notifications for new chat messages</small>
                             </div>
                             <div className="form-check form-switch">
                                 <input
                                     className="form-check-input"
                                     type="checkbox"
-                                    checked={notifications.email}
-                                    onChange={() => toggleNotification('email')}
+                                    checked={notifications.chat}
+                                    onChange={() => toggleNotification('chat')}
                                 />
                             </div>
                         </div>
+                        {user.role !== 'admin' && user.role !== 'Admin' && (
+                            <div className="setting-item d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6 className="mb-0">Admin Notifications</h6>
+                                    <small className="text-muted">Receive administrative updates and alerts</small>
+                                </div>
+                                <div className="form-check form-switch">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        checked={notifications.admin}
+                                        onChange={() => toggleNotification('admin')}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div className="setting-item d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h6 className="mb-0">Push Notifications</h6>
-                                <small className="text-muted">Receive pop-up notifications</small>
+                                <h6 className="mb-0">Students Notifications</h6>
+                                <small className="text-muted">Receive updates about new and existing students</small>
                             </div>
                             <div className="form-check form-switch">
                                 <input
                                     className="form-check-input"
                                     type="checkbox"
-                                    checked={notifications.push}
-                                    onChange={() => toggleNotification('push')}
+                                    checked={notifications.students}
+                                    onChange={() => toggleNotification('students')}
                                 />
                             </div>
                         </div>
                         <div className="setting-item d-flex justify-content-between align-items-center">
                             <div>
-                                <h6 className="mb-0">SMS Notifications</h6>
-                                <small className="text-muted">Receive urgent updates via SMS</small>
+                                <h6 className="mb-0">Enquiry Notifications</h6>
+                                <small className="text-muted">Receive notifications for new enquiries</small>
                             </div>
                             <div className="form-check form-switch">
                                 <input
                                     className="form-check-input"
                                     type="checkbox"
-                                    checked={notifications.sms}
-                                    onChange={() => toggleNotification('sms')}
+                                    checked={notifications.enquiry}
+                                    onChange={() => toggleNotification('enquiry')}
                                 />
                             </div>
                         </div>
@@ -118,5 +135,7 @@ const SettingsOverview = () => {
         </div>
     );
 };
+
+SettingsOverview.propTypes = {};
 
 export default SettingsOverview;

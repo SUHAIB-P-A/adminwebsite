@@ -25,47 +25,47 @@ const Chat = () => {
     // Prevents onClick from firing immediately after long press
     const longPressTriggered = useRef(false);
 
+    // Track previous unread counts to detect new messages
+    const prevUnreadCounts = useRef({});
+
     const scrollRef = useRef();
 
     const currentUserId = localStorage.getItem('staff_id'); // We need this to differentiate sent/received styles
 
+    // Request notification permission on mount
     useEffect(() => {
-        fetchUsers();
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
     }, []);
 
-    useEffect(() => {
-        // Reset message selection when switching chats
-        setIsMessageSelectionMode(false);
-        setSelectedMessageIds(new Set());
+    // Show chat popup notification
+    const showChatNotification = (message, senderName) => {
+        // Check if chat notifications are enabled
+        const prefs = JSON.parse(localStorage.getItem('notification_preferences') || '{}');
+        if (prefs.chat === false) return; // Don't show if disabled
 
-        let interval;
-        if (selectedUser) {
-            fetchMessages(selectedUser.id);
-            // Poll for new messages every 3 seconds
-            interval = setInterval(() => {
-                fetchMessages(selectedUser.id, true);
-            }, 3000);
+        // Try browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const notification = new Notification('New Message', {
+                body: `${senderName}: ${message.content.slice(0, 50)}${message.content.length > 50 ? '...' : ''}`,
+                icon: '/logo.png',
+                badge: '/logo.png',
+                tag: 'chat-message',
+                requireInteraction: false
+            });
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+
+            // Auto-close after 5 seconds
+            setTimeout(() => notification.close(), 5000);
         }
-        return () => clearInterval(interval);
-    }, [selectedUser]);
+    };
 
-    // Poll for users list updates (unread counts & sorting) every 10s
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Only fetch if we are not currently searching/filtering? 
-            // Ideally we merge state, but for now simple re-fetch
-            fetchUsers(true);
-        }, 10000);
-        return () => clearInterval(interval);
-    }, [currentUserId]);
-
-    useEffect(() => {
-        // Auto-scroll to bottom
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages]);
-
+    // Declare fetch functions before useEffect
     const fetchUsers = async (silent = false) => {
         if (!silent) setLoadingUsers(true);
         try {
@@ -80,7 +80,7 @@ const Chat = () => {
                 // Merge data: Update existing users with new info, add new users, preserve images
                 setUsers(prevUsers => {
                     const userMap = new Map(prevUsers.map(u => [u.id, u]));
-                    return data.map(newUser => {
+                    const updatedUsers = data.map(newUser => {
                         const existingUser = userMap.get(newUser.id);
                         if (existingUser) {
                             return {
@@ -92,9 +92,37 @@ const Chat = () => {
                         }
                         return newUser;
                     });
+
+                    // Check for new unread messages and trigger notifications
+                    updatedUsers.forEach(user => {
+                        const prevCount = prevUnreadCounts.current[user.id] || 0;
+                        const newCount = user.unread_count || 0;
+
+                        // New message detected (unread count increased)
+                        if (newCount > prevCount && newCount > 0) {
+                            // Only show notification if not currently viewing this chat
+                            if (!selectedUser || selectedUser.id !== user.id) {
+                                // Create a mock message for notification
+                                const mockMessage = {
+                                    content: 'New message received',
+                                    sender: user.id
+                                };
+                                showChatNotification(mockMessage, user.name);
+                            }
+                        }
+
+                        // Update tracked count
+                        prevUnreadCounts.current[user.id] = newCount;
+                    });
+
+                    return updatedUsers;
                 });
             } else {
                 setUsers(data);
+                // Initialize unread counts on first load
+                data.forEach(user => {
+                    prevUnreadCounts.current[user.id] = user.unread_count || 0;
+                });
             }
         } catch (err) {
             console.error("Failed to fetch chat users", err);
@@ -129,6 +157,55 @@ const Chat = () => {
         }
         if (!silent) setLoadingMessages(false);
     };
+
+    // useEffect hooks
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    useEffect(() => {
+        // Reset message selection when switching chats
+        setIsMessageSelectionMode(false);
+        setSelectedMessageIds(new Set());
+
+        let interval;
+        if (selectedUser) {
+            fetchMessages(selectedUser.id);
+            // Poll for new messages every 15 seconds (optimized from 3s)
+            interval = setInterval(() => {
+                fetchMessages(selectedUser.id, true);
+            }, 15000);
+        }
+        return () => clearInterval(interval);
+    }, [selectedUser]);
+
+    // Detect new messages and trigger notification
+    useEffect(() => {
+        if (messages.length > 0 && selectedUser) {
+            const lastMessage = messages[messages.length - 1];
+            // Only notify if message is from other person (not me)
+            if (parseInt(lastMessage.sender) !== parseInt(currentUserId)) {
+                showChatNotification(lastMessage, selectedUser.name);
+            }
+        }
+    }, [messages.length]); // Trigger when message count changes
+
+    // Poll for users list updates (unread counts & sorting) every 10s
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Only fetch if we are not currently searching/filtering? 
+            // Ideally we merge state, but for now simple re-fetch
+            fetchUsers(true);
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [currentUserId]);
+
+    useEffect(() => {
+        // Auto-scroll to bottom
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
 
     // Message Handlers
     const handleMessageLongPress = (msg) => {

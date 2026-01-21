@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import './AdminPanel.css';
 
@@ -18,7 +19,8 @@ const NotificationPopover = ({ onClose }) => {
         if (!staffId) return;
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/notifications/', {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+            const response = await fetch(`${API_BASE_URL}/api/notifications/`, {
                 headers: { 'X-Staff-ID': staffId }
             });
             if (response.ok) {
@@ -42,7 +44,8 @@ const NotificationPopover = ({ onClose }) => {
     const handleItemClick = async (notif) => {
         if (!notif.is_read) {
             try {
-                await fetch(`http://127.0.0.1:8000/api/notifications/${notif.id}/read/`, { method: 'POST' });
+                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+                await fetch(`${API_BASE_URL}/api/notifications/${notif.id}/read/`, { method: 'POST' });
                 // Optimistically update
                 setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
             } catch (error) {
@@ -63,7 +66,8 @@ const NotificationPopover = ({ onClose }) => {
 
         setSendLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/notifications/send/', {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+            const response = await fetch(`${API_BASE_URL}/api/notifications/send/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -185,6 +189,10 @@ const NotificationPopover = ({ onClose }) => {
             )}
         </div>
     );
+};
+
+NotificationPopover.propTypes = {
+    onClose: PropTypes.func.isRequired,
 };
 
 export default NotificationPopover;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import './AdminPanel.css';
 
 const ChatWidget = ({ onClose }) => {
@@ -25,7 +26,8 @@ const ChatWidget = ({ onClose }) => {
     const fetchContacts = async () => {
         if (!staffId) return;
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/chat/contacts/`, {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+            const response = await fetch(`${API_BASE_URL}/api/chat/contacts/`, {
                 headers: { 'X-Staff-ID': staffId }
             });
             if (response.ok) {
@@ -41,7 +43,8 @@ const ChatWidget = ({ onClose }) => {
     const fetchMessages = async () => {
         if (!activeContact || !staffId) return;
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/chat/messages/${activeContact.id}/`, {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+            const response = await fetch(`${API_BASE_URL}/api/chat/messages/${activeContact.id}/`, {
                 headers: { 'X-Staff-ID': staffId }
             });
             if (response.ok) {
@@ -80,7 +83,8 @@ const ChatWidget = ({ onClose }) => {
                 message: newMessage
             };
 
-            const response = await fetch('http://127.0.0.1:8000/api/chat/send/', {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+            const response = await fetch(`${API_BASE_URL}/api/chat/send/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -190,6 +194,10 @@ const ChatWidget = ({ onClose }) => {
             )}
         </div>
     );
+};
+
+ChatWidget.propTypes = {
+    onClose: PropTypes.func.isRequired,
 };
 
 export default ChatWidget;

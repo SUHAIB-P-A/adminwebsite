@@ -24,18 +24,6 @@ const Enquiries = () => {
     const [statusFilter, setStatusFilter] = useState('Pending');
     const [activeTab, setActiveTab] = useState('active'); // 'active' or 'connected'
 
-    // Fetch Enquiries and Staff (if Admin)
-    useEffect(() => {
-        const initData = async () => {
-            const role = localStorage.getItem('role');
-            await fetchEnquiries();
-            if (role === 'admin' || role === 'Admin') {
-                fetchStaff();
-            }
-        };
-        initData();
-    }, []);
-
     const showToast = (msg, type = 'success') => {
         setToast({ show: true, msg, type });
         setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 3000);
@@ -72,6 +60,18 @@ const Enquiries = () => {
             setLoading(false);
         }
     };
+
+    // Fetch Enquiries and Staff (if Admin)
+    useEffect(() => {
+        const initData = async () => {
+            const role = localStorage.getItem('role');
+            await fetchEnquiries();
+            if (role === 'admin' || role === 'Admin') {
+                fetchStaff();
+            }
+        };
+        initData();
+    }, []);
 
     // Handle Update Enquiry
     const handleUpdate = async (e) => {

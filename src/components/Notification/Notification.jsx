@@ -17,16 +17,6 @@ const Notification = () => {
     const [toast, setToast] = useState({ show: false, msg: '', type: 'success' });
     const [staffList, setStaffList] = useState([]); // For selecting specific recipient if needed
 
-    useEffect(() => {
-        if (!isAdmin) {
-            fetchNotifications();
-        } else {
-            // If admin, maybe fetch staff list for dropdown if we want specific selection
-            fetchStaff();
-            setLoading(false);
-        }
-    }, [isAdmin]);
-
     const fetchNotifications = async () => {
         setLoading(true);
         try {
@@ -58,6 +48,16 @@ const Notification = () => {
         setToast({ show: true, msg, type });
         setTimeout(() => setToast({ show: false, msg: '', type: 'success' }), 3000);
     };
+
+    useEffect(() => {
+        if (!isAdmin) {
+            fetchNotifications();
+        } else {
+            // If admin, maybe fetch staff list for dropdown if we want specific selection
+            fetchStaff();
+            setLoading(false);
+        }
+    }, [isAdmin]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

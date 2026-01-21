@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import axios from 'axios';
-import { useNavigate, useSearchParams, useLocation, Outlet } from 'react-router-dom';
+import { useNavigate, useSearchParams, Outlet } from 'react-router-dom';
 import LegalModal from './LegalModal';
 import './Settings.css';
 
@@ -58,11 +59,23 @@ const Settings = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
-    // Notifications State
-    const [notifications, setNotifications] = useState({
-        email: true,
-        push: false,
-        sms: true
+    // Notifications State - Load from localStorage or default to all enabled
+    const [notifications, setNotifications] = useState(() => {
+        const saved = localStorage.getItem('notification_preferences');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error('Failed to parse notification preferences', e);
+            }
+        }
+        // Default: all enabled
+        return {
+            chat: true,
+            admin: true,
+            students: true,
+            enquiry: true
+        };
     });
 
     // Toast State
@@ -166,10 +179,16 @@ const Settings = () => {
     }, [searchParams, navigate]);
 
     const toggleNotification = (type) => {
-        setNotifications(prev => ({
-            ...prev,
-            [type]: !prev[type]
-        }));
+        setNotifications(prev => {
+            const updated = {
+                ...prev,
+                [type]: !prev[type]
+            };
+            // Save to localStorage
+            localStorage.setItem('notification_preferences', JSON.stringify(updated));
+            showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} notifications ${updated[type] ? 'enabled' : 'disabled'}`);
+            return updated;
+        });
     };
 
     const openLegalModal = (type) => {
@@ -300,5 +319,7 @@ const Settings = () => {
         </div>
     );
 };
+
+Settings.propTypes = {};
 
 export default Settings;
