@@ -71,7 +71,6 @@ const Settings = () => {
         }
         // Default: all enabled
         return {
-            chat: true,
             admin: true,
             students: true,
             enquiry: true

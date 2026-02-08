@@ -9,7 +9,6 @@ import Settings from './components/Settings/Settings';
 import SettingsOverview from './components/Settings/SettingsOverview';
 import EditProfilePage from './components/Settings/EditProfilePage';
 import Notification from './components/Notification/Notification';
-import Chat from './components/Chat/Chat';
 import FollowUps from './components/FollowUps/FollowUps';
 import Dashboard from './components/Dashboard/Dashboard';
 import './App.css';
@@ -50,7 +49,6 @@ function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="students" element={<Students />} />
             <Route path="enquiries" element={<Enquiries />} />
-            <Route path="chat" element={<Chat />} />
 
             {/* Staff Management - Admin Only */}
             <Route path="staff" element={

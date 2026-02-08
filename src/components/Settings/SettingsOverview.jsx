@@ -48,20 +48,6 @@ const SettingsOverview = () => {
                 <h4 className="section-title"><i className="bi bi-bell me-2"></i> Notifications</h4>
                 <div className="card settings-card">
                     <div className="card-body">
-                        <div className="setting-item d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 className="mb-0">Chat Notifications</h6>
-                                <small className="text-muted">Receive notifications for new chat messages</small>
-                            </div>
-                            <div className="form-check form-switch">
-                                <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={notifications.chat}
-                                    onChange={() => toggleNotification('chat')}
-                                />
-                            </div>
-                        </div>
                         {user.role !== 'admin' && user.role !== 'Admin' && (
                             <div className="setting-item d-flex justify-content-between align-items-center mb-3">
                                 <div>

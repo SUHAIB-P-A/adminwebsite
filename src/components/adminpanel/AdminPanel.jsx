@@ -12,7 +12,6 @@ const AdminPanel = () => {
         name: '', role: '', image: null, email: '', phone: ''
     });
     const [notificationCount, setNotificationCount] = useState(0);
-    const [chatCount, setChatCount] = useState(0);
     const accountRef = useRef(null);
 
     // Close dropdown when clicking outside
@@ -71,38 +70,7 @@ const AdminPanel = () => {
         return () => window.removeEventListener('userInfoUpdated', handleUserInfoUpdate);
     }, []);
 
-    // Chat Count Polling
-    useEffect(() => {
-        const fetchChatCount = async () => {
-            const staffId = localStorage.getItem('staff_id');
-            if (staffId && staffId !== 'local') {
-                try {
-                    const { data } = await axios.get('/api/chat/unread_count/', { params: { user_id: staffId } });
-                    setChatCount(data.count);
-                } catch (err) {
-                    // Suppress
-                }
-            }
-        };
 
-        fetchChatCount();
-        const interval = setInterval(fetchChatCount, 20000); // Poll every 20s (optimized from 5s)
-
-        const handleChatRead = (e) => {
-            // Optimistic update
-            if (e.detail && e.detail.count) {
-                setChatCount(prev => Math.max(0, prev - e.detail.count));
-            }
-            // Fetch fresh data after a short delay to ensure DB consistency
-            setTimeout(fetchChatCount, 1000);
-        };
-        window.addEventListener('chatRead', handleChatRead);
-
-        return () => {
-            clearInterval(interval);
-            window.removeEventListener('chatRead', handleChatRead);
-        };
-    }, []);
 
     // Notification Polling
     useEffect(() => {
@@ -168,15 +136,6 @@ const AdminPanel = () => {
 
                     <div className="d-flex gap-3 align-items-center">
                         {/* Icons */}
-                        <button className="btn btn-light rounded-circle shadow-sm position-relative" onClick={() => navigate('/portal/chat')}>
-                            <i className="bi bi-chat"></i>
-                            {chatCount > 0 && (
-                                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.6rem' }}>
-                                    {chatCount}
-                                    <span className="visually-hidden">unread messages</span>
-                                </span>
-                            )}
-                        </button>
                         <button className="btn btn-light rounded-circle shadow-sm position-relative" onClick={() => navigate('/portal/notifications')}>
                             <i className="bi bi-bell"></i>
                             {notificationCount > 0 && user.role !== 'admin' && user.role !== 'Admin' && (
