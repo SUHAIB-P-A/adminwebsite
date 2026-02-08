@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import StaffImageCropper from './StaffImageCropper';
+import ImageCropper from '../common/ImageCropper';
 
 const FIELD_CONFIG = [
     { name: 'first_name', label: 'First Name', required: true, half: true },
@@ -21,15 +21,15 @@ const FIELD_CONFIG = [
  * Staff Form Modal Component
  * Handles staff creation and editing with image upload
  */
-const StaffFormModal = ({ 
-    show, 
-    formData, 
+const StaffFormModal = ({
+    show,
+    formData,
     errors = {},
-    onFormChange, 
-    onSave, 
-    onCancel, 
+    onFormChange,
+    onSave,
+    onCancel,
     isLoading = false,
-    isEdit = false 
+    isEdit = false
 }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showCropper, setShowCropper] = useState(false);
@@ -40,7 +40,7 @@ const StaffFormModal = ({
     const renderInput = (f) => {
         const errorMsg = errors[f.name];
         const value = formData[f.name] || '';
-        
+
         const props = {
             name: f.name,
             value,
@@ -212,7 +212,7 @@ const StaffFormModal = ({
             </div>
 
             {/* Image Cropper Modal */}
-            <StaffImageCropper
+            <ImageCropper
                 show={showCropper}
                 image={cropImage}
                 onCrop={handleCropComplete}

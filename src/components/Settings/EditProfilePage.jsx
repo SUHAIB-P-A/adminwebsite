@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
+import ImageCropper from '../common/ImageCropper';
 
 const EditProfilePage = () => {
     const navigate = useNavigate();
@@ -10,6 +11,10 @@ const EditProfilePage = () => {
     const [formData, setFormData] = useState({
         name: '', role: '', phone: '', email: '', image: null, dob: '', gender: ''
     });
+
+    // Cropper State
+    const [showCropper, setShowCropper] = useState(false);
+    const [cropImage, setCropImage] = useState(null);
 
     const [isAdmin, setIsAdmin] = useState(false);
 
@@ -57,13 +62,20 @@ const EditProfilePage = () => {
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData(prev => ({
-                    ...prev,
-                    image: reader.result
-                }));
+                setCropImage(reader.result);
+                setShowCropper(true);
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleCropComplete = (croppedImage) => {
+        setFormData(prev => ({
+            ...prev,
+            image: croppedImage
+        }));
+        setShowCropper(false);
+        setCropImage(null);
     };
 
     const onSave = () => {
@@ -270,6 +282,14 @@ const EditProfilePage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Image Cropper Modal */}
+            <ImageCropper
+                show={showCropper}
+                image={cropImage}
+                onCrop={handleCropComplete}
+                onCancel={() => setShowCropper(false)}
+            />
         </div>
     );
 };
