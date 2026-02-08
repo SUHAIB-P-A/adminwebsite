@@ -1,10 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminPanel from './components/adminpanel/AdminPanel';
-import Students from './components/Students';
-import Enquiries from './components/Enquiries';
-import Login from './components/Login';
-import StaffManagement from './components/StaffManagement';
-import Home from './components/Home';
+import Students from './components/Students/Students';
+import Enquiries from './components/Enquiries/Enquiries';
+import Login from './components/Login/Login';
+import StaffManagement from './components/StaffManagement/StaffManagement';
+import Home from './components/Home/Home';
+import Settings from './components/Settings/Settings';
+import SettingsOverview from './components/Settings/SettingsOverview';
+import EditProfilePage from './components/Settings/EditProfilePage';
+import Notification from './components/Notification/Notification';
+import Chat from './components/Chat/Chat';
+import FollowUps from './components/FollowUps/FollowUps';
+import Dashboard from './components/Dashboard/Dashboard';
 import './App.css';
 
 // Protected Route Component
@@ -20,7 +27,7 @@ const ProtectedRoute = ({ children }) => {
 const AdminRoute = ({ children }) => {
   const role = localStorage.getItem('role');
   if (role !== 'admin' && role !== 'Admin') {
-    return <Navigate to="/portal/students" replace />;
+    return <Navigate to="/portal/dashboard" replace />;
   }
   return children;
 };
@@ -40,9 +47,10 @@ function App() {
               <AdminPanel />
             </ProtectedRoute>
           }>
-            <Route index element={<Navigate to="students" replace />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="students" element={<Students />} />
             <Route path="enquiries" element={<Enquiries />} />
+            <Route path="chat" element={<Chat />} />
 
             {/* Staff Management - Admin Only */}
             <Route path="staff" element={
@@ -51,8 +59,16 @@ function App() {
               </AdminRoute>
             } />
 
-            <Route path="dashboard" element={<div className="p-4"><h2>Dashboard (Coming Soon)</h2></div>} />
-            <Route path="settings" element={<div className="p-4"><h2>Settings</h2></div>} />
+            <Route path="follow-ups" element={<FollowUps />} />
+            <Route path="notifications" element={<Notification />} />
+
+            <Route path="dashboard" element={<Dashboard />} />
+
+            {/* Settings Sub-Routes */}
+            <Route path="settings" element={<Settings />}>
+              <Route index element={<SettingsOverview />} />
+              <Route path="profile/edit" element={<EditProfilePage />} />
+            </Route>
           </Route>
 
           {/* Fallback */}

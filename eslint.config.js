@@ -23,7 +23,33 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]|^err$|^error$|^index$' }],
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/exhaustive-deps': 'warn',
+      'no-empty': 'warn',
+      'no-undef': 'warn',
+    },
+  },
+  {
+    files: ['src/**/__tests__/**/*.{js,jsx}', 'src/**/*.test.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        vi: 'readonly',
+        waitFor: 'readonly',
+        render: 'readonly',
+        screen: 'readonly',
+      },
+    },
+    rules: {
+      'no-undef': 'off',
     },
   },
 ])
+

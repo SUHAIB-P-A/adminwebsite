@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import './adminpanel/AdminPanel.css';
+import '../adminpanel/AdminPanel.css';
 
 const Login = () => {
     const [credentials, setCredentials] = useState({ login_id: '', password: '' });
@@ -41,9 +41,43 @@ const Login = () => {
 
             localStorage.setItem('role', userRole);
             localStorage.setItem('staff_id', data.staff_id || '');
-            localStorage.setItem('staff_name', data.name || 'User');
 
-            navigate('/portal/students');
+            // Update localStorage with Server Data (Source of Truth)
+            // We use '||' to provide defaults if server returns null/empty, guaranteeing no data bleed from previous user.
+            localStorage.setItem('staff_name', data.name || (userRole === 'admin' ? 'Administrator' : 'User'));
+            localStorage.setItem('staff_email', data.email || '');
+            localStorage.setItem('staff_phone', data.phone || '');
+            localStorage.setItem('staff_dob', data.dob || '');
+            localStorage.setItem('staff_gender', data.gender || '');
+
+            if (data.image) {
+                try {
+                    localStorage.setItem('staff_image', data.image);
+                } catch (e) {
+                    console.warn("Profile image too large for local storage. Skipping cache.", e);
+                    // We knowingly skip saving the image to local storage if it's too big.
+                    // The user can still login, but might see a placeholder or need to fetch image differently.
+                    localStorage.removeItem('staff_image');
+                }
+            } else {
+                localStorage.removeItem('staff_image');
+            }
+
+            // Create/Update snapshot
+            const profileKey = `staff_profile_${data.staff_id || 'local'}`;
+            const profileToSave = {
+                name: data.name || (userRole === 'admin' ? 'Administrator' : 'User'),
+                dob: data.dob || '',
+                gender: data.gender || '',
+                phone: data.phone || '',
+                email: data.email || '',
+                image: data.image || null
+            };
+            try {
+                localStorage.setItem(profileKey, JSON.stringify(profileToSave));
+            } catch (e) { /* ignore */ }
+
+            navigate('/portal/dashboard');
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed. Please check credentials.');
         }
