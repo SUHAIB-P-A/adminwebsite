@@ -7,8 +7,7 @@ import Cropper from 'react-easy-crop';
 import getCroppedImg from '../../utils/cropUtils';
 
 const FIELD_CONFIG = [
-    { name: 'first_name', label: 'First Name', required: true, half: true },
-    { name: 'last_name', label: 'Last Name', required: true, half: true },
+    { name: 'full_name', label: 'Full Name', required: true, half: false },
     { name: 'email', label: 'Email', type: 'email', required: true, half: true },
     { name: 'phone_number', label: 'Phone', required: true, half: true },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'], half: true },
@@ -1033,7 +1032,7 @@ const StaffManagement = () => {
                                                                         >
                                                                             <td data-label="#" className="px-3 fw-bold text-secondary">{i + 1}</td>
                                                                             <td data-label="Name">
-                                                                                <div className="fw-medium">{st.first_name} {st.last_name} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
+                                                                                <div className="fw-medium">{st.full_name || 'N/A'} {!st.is_read && <span className="badge bg-danger rounded-pill ms-1" style={{ fontSize: '0.6rem' }}>NEW</span>}</div>
                                                                             </td>
                                                                             <td data-label="Course">
                                                                                 <span className="badge bg-light text-dark border">{st.course_selected || 'N/A'}</span>

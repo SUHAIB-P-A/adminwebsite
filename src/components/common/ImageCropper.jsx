@@ -59,8 +59,8 @@ const ImageCropper = ({ show, image, onCrop, onCancel }) => {
                                     crop={crop}
                                     zoom={zoom}
                                     aspect={1}
-                                    cropShape="round"
-                                    showGrid={false}
+                                    cropShape="rect"
+                                    showGrid={true}
                                     onCropChange={setCrop}
                                     onZoomChange={setZoom}
                                     onCropComplete={onCropComplete}
@@ -88,7 +88,7 @@ const ImageCropper = ({ show, image, onCrop, onCancel }) => {
                             {/* Instructions */}
                             <div className="alert alert-info mt-3 mb-0 small">
                                 <i className="bi bi-info-circle me-2"></i>
-                                Drag to position and use the slider to zoom. The circular area will be your profile picture.
+                                Drag to position and use the slider to zoom. The rectangular area will be your profile picture.
                             </div>
                         </div>
                         <div className="modal-footer border-0">

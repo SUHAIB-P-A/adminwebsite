@@ -7,8 +7,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 21 }, (_, i) => currentYear - i);
 
 const FIELD_CONFIG = [
-    { name: 'first_name', label: 'First Name', required: true, half: true },
-    { name: 'last_name', label: 'Last Name', required: true, half: true },
+    { name: 'full_name', label: 'Full Name', required: true, half: false },
     { name: 'email', label: 'Email', type: 'email', required: true, half: true },
     { name: 'phone_number', label: 'Phone', required: true, half: true },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Others'], half: true },
@@ -164,10 +163,10 @@ const FollowUps = () => {
                     <div key={item.id} className="list-group-item list-group-item-action d-flex flex-wrap justify-content-between align-items-center p-3 border-0 mb-2 shadow-sm rounded gap-3">
                         <div className="d-flex align-items-center gap-3">
                             <div className={`avatar-initials text-white rounded-circle d-flex align-items-center justify-content-center fw-bold ${type === 'Student' ? 'bg-primary' : 'bg-warning'}`} style={{ width: '50px', height: '50px', flexShrink: 0 }}>
-                                {(item.name || (item.first_name + ' ' + item.last_name)).charAt(0)}
+                                {(item.name || item.full_name || '?').charAt(0)}
                             </div>
                             <div>
-                                <h6 className="mb-0 fw-bold">{item.name || (item.first_name + ' ' + item.last_name)}</h6>
+                                <h6 className="mb-0 fw-bold">{item.name || item.full_name || 'N/A'}</h6>
                                 <div className="text-muted small">
                                     <i className="bi bi-clock-history me-1"></i>
                                     {formatDate(item.follow_up_date)}

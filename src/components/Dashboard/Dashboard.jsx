@@ -77,10 +77,10 @@ const Dashboard = () => {
                                 <div key={idx} className="list-group-item border-0 py-3 px-4 d-flex align-items-center justify-content-between">
                                     <div className="d-flex align-items-center">
                                         <div className={`avatar-initials me-3 bg-light text-dark fw-bold`}>
-                                            {(item.first_name || item.name || '?').charAt(0)}
+                                            {(item.full_name || item.name || '?').charAt(0)}
                                         </div>
                                         <div>
-                                            <h6 className="mb-0 fw-bold">{item.first_name ? `${item.first_name} ${item.last_name}` : item.name}</h6>
+                                            <h6 className="mb-0 fw-bold">{item.full_name || item.name || 'N/A'}</h6>
                                             <small className="text-muted d-block text-truncate" style={{ maxWidth: '200px' }}>
                                                 {item.course_selected || item.message || 'No details'}
                                             </small>

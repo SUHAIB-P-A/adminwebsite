@@ -8,8 +8,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 21 }, (_, i) => currentYear - i);
 
 const FIELD_CONFIG = [
-    { name: 'first_name', label: 'First Name', required: true, half: true },
-    { name: 'last_name', label: 'Last Name', required: true, half: true },
+    { name: 'full_name', label: 'Full Name', required: true, half: false },
     { name: 'email', label: 'Email', type: 'email', required: true, half: true },
     { name: 'phone_number', label: 'Phone', required: true, half: true },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Others'], half: true },
@@ -271,7 +270,7 @@ const Students = () => {
 
         // Search filter by name
         if (searchQuery.trim()) {
-            const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+            const fullName = (s.full_name || '').toLowerCase();
             const query = searchQuery.toLowerCase().trim();
             if (!fullName.includes(query)) return false;
         }
@@ -399,7 +398,7 @@ const Students = () => {
                                     className={`${selection.ids.includes(s.id) ? "table-active" : ""} ${!s.is_read ? "fw-bold table-unread" : ""}`}>
                                     {selection.active && <td data-label="Select" className="text-center col-select"><input type="checkbox" checked={selection.ids.includes(s.id)} readOnly className="form-check-input" /></td>}
                                     <td data-label="ID" className="fw-bold text-secondary col-id">{index + 1}</td>
-                                    <td data-label="Name" className="col-name">{s.first_name} {s.last_name} {!s.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}</td>
+                                    <td data-label="Name" className="col-name">{s.full_name || 'N/A'} {!s.is_read && <span className="badge bg-danger rounded-pill ms-2" style={{ fontSize: '0.6rem' }}>NEW</span>}</td>
                                     <td data-label="Course" className="col-course">{s.course_selected || 'N/A'}</td>
                                     <td data-label="Status" className="col-status">
                                         <div className="d-flex align-items-center gap-2">

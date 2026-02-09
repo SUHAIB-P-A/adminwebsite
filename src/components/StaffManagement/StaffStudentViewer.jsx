@@ -5,14 +5,14 @@ import PropTypes from 'prop-types';
  * Staff Student Viewer Component
  * Displays assigned students and enquiries
  */
-const StaffStudentViewer = ({ 
-    show, 
-    staffName, 
-    students = [], 
+const StaffStudentViewer = ({
+    show,
+    staffName,
+    students = [],
     enquiries = [],
-    onClose, 
+    onClose,
     onStudentAction,
-    onEnquiryAction 
+    onEnquiryAction
 }) => {
     const [studentFilter, setStudentFilter] = useState('all');
     const [studentStatusFilter, setStudentStatusFilter] = useState('Pending');
@@ -115,7 +115,7 @@ const StaffStudentViewer = ({
                                                 <div key={student.id} className="list-group-item">
                                                     <div className="d-flex justify-content-between align-items-start">
                                                         <div>
-                                                            <h6 className="mb-1">{student.first_name} {student.last_name}</h6>
+                                                            <h6 className="mb-1">{student.full_name || 'N/A'}</h6>
                                                             <p className="mb-1">
                                                                 <small>{student.email}</small>
                                                             </p>

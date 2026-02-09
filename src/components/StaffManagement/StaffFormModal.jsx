@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 import ImageCropper from '../common/ImageCropper';
 
 const FIELD_CONFIG = [
-    { name: 'first_name', label: 'First Name', required: true, half: true },
-    { name: 'last_name', label: 'Last Name', required: true, half: true },
+    { name: 'full_name', label: 'Full Name', required: true, half: false },
     { name: 'email', label: 'Email', type: 'email', required: true, half: true },
     { name: 'phone_number', label: 'Phone', required: true, half: true },
     { name: 'gender', label: 'Gender', type: 'select', options: ['Male', 'Female', 'Other'], half: true },

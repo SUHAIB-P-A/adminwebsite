@@ -70,7 +70,7 @@ const StudentsTable = ({
                                     />
                                 )}
                             </td>
-                            <td className="fw-500">{student.first_name} {student.last_name}</td>
+                            <td className="fw-500">{student.full_name || 'N/A'}</td>
                             <td>{student.email}</td>
                             <td>{student.phone_number}</td>
                             <td>{student.course_selected}</td>
