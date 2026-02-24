@@ -21,10 +21,15 @@ api.interceptors.request.use(
     if (staffId) {
       config.headers['X-Staff-ID'] = staffId;
     }
-    
+
+    const orgName = localStorage.getItem('org_name');
+    if (orgName) {
+      config.headers['X-Org-Name'] = orgName;
+    }
+
     // Store request start time for duration tracking
     config.requestStartTime = Date.now();
-    
+
     return config;
   },
   (error) => {
@@ -44,14 +49,14 @@ api.interceptors.response.use(
       response.status,
       duration
     );
-    
+
     return response;
   },
   (error) => {
     const config = error.config || {};
     const duration = Date.now() - (config.requestStartTime || Date.now());
     const status = error.response?.status || 0;
-    
+
     // Track API errors
     monitoring.trackApiCall(
       config.method?.toUpperCase() || 'GET',

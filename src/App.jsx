@@ -11,13 +11,17 @@ import EditProfilePage from './components/Settings/EditProfilePage';
 import Notification from './components/Notification/Notification';
 import FollowUps from './components/FollowUps/FollowUps';
 import Dashboard from './components/Dashboard/Dashboard';
+import Organizations from './components/Organizations/Organizations';
+import OrgPanel from './components/OrgPanel/OrgPanel';
+import OrgStudents from './components/OrgPanel/OrgStudents';
+
 import './App.css';
 
-// Protected Route Component
+// Protected Route – requires staff/admin login
 const ProtectedRoute = ({ children }) => {
   const role = localStorage.getItem('role');
-  if (!role) {
-    return <Navigate to="/login" replace />;
+  if (!role || role === 'organization') {
+    return <Navigate to="/" replace />;
   }
   return children;
 };
@@ -27,6 +31,16 @@ const AdminRoute = ({ children }) => {
   const role = localStorage.getItem('role');
   if (role !== 'admin' && role !== 'Admin') {
     return <Navigate to="/portal/dashboard" replace />;
+  }
+  return children;
+};
+
+// Org Only Route
+const OrgRoute = ({ children }) => {
+  const role = localStorage.getItem('role');
+  const orgId = localStorage.getItem('org_id');
+  if (role !== 'organization' || !orgId) {
+    return <Navigate to="/" replace />;
   }
   return children;
 };
@@ -57,9 +71,15 @@ function App() {
               </AdminRoute>
             } />
 
+            {/* Organizations - Admin Only */}
+            <Route path="organizations" element={
+              <AdminRoute>
+                <Organizations />
+              </AdminRoute>
+            } />
+
             <Route path="follow-ups" element={<FollowUps />} />
             <Route path="notifications" element={<Notification />} />
-
             <Route path="dashboard" element={<Dashboard />} />
 
             {/* Settings Sub-Routes */}
@@ -67,6 +87,16 @@ function App() {
               <Route index element={<SettingsOverview />} />
               <Route path="profile/edit" element={<EditProfilePage />} />
             </Route>
+          </Route>
+
+          {/* Organization Portal Routes */}
+          <Route path="/org" element={
+            <OrgRoute>
+              <OrgPanel />
+            </OrgRoute>
+          }>
+            <Route index element={<Navigate to="students" replace />} />
+            <Route path="students" element={<OrgStudents />} />
           </Route>
 
           {/* Fallback */}

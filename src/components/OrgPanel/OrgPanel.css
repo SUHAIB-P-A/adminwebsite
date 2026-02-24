@@ -1,0 +1,374 @@
+/* ===========================
+   ORG PANEL LAYOUT
+=========================== */
+* {
+    box-sizing: border-box;
+}
+
+.org-root {
+    display: flex;
+    min-height: 100vh;
+    background: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Sidebar */
+.org-sidebar {
+    width: 260px;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    flex-shrink: 0;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.org-sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.org-sidebar-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    object-fit: contain;
+    background: white;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.org-sidebar-title {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+}
+
+.org-sidebar-name {
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 2px;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* Nav */
+.org-nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.org-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.org-nav-item i {
+    font-size: 18px;
+    width: 22px;
+    text-align: center;
+}
+
+.org-nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.org-nav-item.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    box-shadow: inset 3px 0 0 #a78bfa;
+}
+
+/* Sidebar Footer */
+.org-sidebar-footer {
+    padding: 16px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.org-user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+.org-user-badge i {
+    color: #a78bfa;
+    font-size: 20px;
+}
+
+.org-user-name {
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.org-user-role {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11px;
+}
+
+.org-logout-btn {
+    width: 100%;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.org-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+/* Main Content */
+.org-main {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* ===========================
+   ORG PAGE CONTENT
+=========================== */
+.org-page {
+    padding: 32px;
+    max-width: 1200px;
+}
+
+.org-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.org-page-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px;
+}
+
+.org-page-sub {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0;
+}
+
+.org-stat-badge {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.org-stat-badge span {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+/* Search */
+.org-search-bar {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.org-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 16px;
+}
+
+.org-search-input {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px 16px 12px 40px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: white;
+}
+
+.org-search-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Loading / Error */
+.org-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 40px;
+    color: #6b7280;
+    font-size: 15px;
+}
+
+.org-error {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-size: 14px;
+}
+
+/* Table */
+.org-table-wrap {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+    overflow: hidden;
+}
+
+.org-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.org-table thead tr {
+    background: #f8fafc;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.org-table th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.org-table tbody tr {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.15s;
+}
+
+.org-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+.org-table td {
+    padding: 13px 16px;
+    font-size: 13.5px;
+    color: #374151;
+    vertical-align: middle;
+}
+
+.org-td-num {
+    color: #9ca3af;
+    font-size: 12px;
+    width: 40px;
+}
+
+.org-td-bold {
+    font-weight: 600;
+    color: #111827;
+}
+
+.org-td-msg {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.org-empty {
+    text-align: center;
+    padding: 60px 16px !important;
+    color: #9ca3af;
+}
+
+.org-empty i {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 12px;
+}
+
+.org-empty span {
+    display: block;
+    font-size: 15px;
+}
+
+/* Status Badges */
+.org-status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.org-status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.org-status-in-progress {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.org-status-completed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.org-status-follow-up {
+    background: #f3e8ff;
+    color: #6d28d9;
+}
+
+.org-status-connected {
+    background: #d1fae5;
+    color: #065f46;
+}

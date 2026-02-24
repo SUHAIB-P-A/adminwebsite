@@ -23,6 +23,7 @@ const Sidebar = ({ isOpen, closeSidebar, user }) => {
         { id: 'students', label: 'Students', icon: 'bi-people', path: '/portal/students' },
         { id: 'enquiries', label: 'Enquiries', icon: 'bi-file-text', path: '/portal/enquiries' },
         { id: 'follow-ups', label: 'Follow Ups', icon: 'bi-calendar-check', path: '/portal/follow-ups' },
+        ...(isAdmin ? [{ id: 'organizations', label: 'Organizations', icon: 'bi-buildings-fill', path: '/portal/organizations' }] : []),
         { id: 'settings', label: 'Settings', icon: 'bi-gear', path: '/portal/settings' },
     ];
 
